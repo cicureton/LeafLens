@@ -8,7 +8,7 @@ Senior Capstone Project
 ### This feature vector represents the most important visual characteristics of the leaf.
 ### Goes through classification layer to predict what species it is (exaple: “This is likely an Oak Leaf”)
 # 2. Metadata Processing
-### The metadata will be the information we get from users. We will ask the users when they upload images a few questions about their plants and their personal information (where are you located? indoor or outdoor plant?, etc.) → go through a small NN to combine/learn patterns in data → Will output a feature vector that can be interpreted by our model
+### The metadata will be the information we get from users. We will ask the users when they upload images a few questions about their plants and their personal information (where are you located? indoor or outdoor plant?, etc.) → go through a small NN to learn patterns in data that will help with disease prediction → Will output a feature vector that can be interpreted by our model
 ### Will convert the user inputs (from questionnaire) or environmental info (from external api) into a numerical vectors for the model to understand. One way to do this is by converting categorical data with one-hot encoding. Meaning they are assigned a binary value based on the answer.
 ### Then we have to do more preprocessing and normalize data (e.g., leaf age, temperature) to fit model requirements (how the images were normalized and transformed).
 ### From here both the categorical and numerical data have been encoded to become numerical in some form. Categorical data will become binary in a form that is interpretable, and numerical data will be normalized usually between 0-1.
