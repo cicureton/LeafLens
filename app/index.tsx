@@ -2,8 +2,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import {
   Image,
-  KeyboardAvoidingView,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -11,86 +9,102 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function LoginScreen() {
   return (
-    <ScrollView contentContainerStyle={styles.scrollContainer}>
-      <LinearGradient colors={["#043927", "#00A86B"]} style={styles.container}>
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-        >
+    <LinearGradient colors={["#043927", "#00A86B"]} style={styles.container}>
+      <SafeAreaView style={{ flex: 1 }}>
+        <ScrollView contentContainerStyle={styles.scrollContainer}>
           {/* Logo + App Title */}
-          <View style={styles.upperContainer}>
-            <Image
-              source={require("../assets/images/logo.png")}
-              style={styles.logo}
-            />
-            <Text style={styles.title}>LeafLens</Text>
-          </View>
+          <Image
+            source={require("../assets/images/logo.png")}
+            style={styles.logo}
+          />
+          <Text style={styles.title}>LeafLens</Text>
 
           {/* Login form */}
-          <View style={styles.innerContainer}>
-            <Text style={styles.normalText}>Login</Text>
+          <Text style={styles.normalText}>Login</Text>
 
-            <TextInput style={styles.input} placeholder="Username" />
+          <View style={styles.inputContainer}>
+            <Image
+              source={require("../assets/images/login.png")}
+              style={styles.inputIcon}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Username"
+              placeholderTextColor="#666"
+            />
+          </View>
+
+          <View style={styles.inputContainer}>
+            <Image
+              source={require("../assets/images/password.png")}
+              style={styles.inputIcon}
+            />
             <TextInput
               style={styles.input}
               placeholder="Password"
+              placeholderTextColor="#666"
               secureTextEntry
             />
-
-            {/* Go to Signup form */}
-            <Text style={styles.normalText}>Don't have an account?</Text>
-            <TouchableOpacity onPress={() => router.replace("/signup")}>
-              <Text style={styles.buttonTextWithUnderline}>Sign Up</Text>
-            </TouchableOpacity>
-
-            {/* Go to homepages */}
-            <TouchableOpacity
-              style={styles.button}
-              onPress={() => router.replace("/tabs/home")}
-            >
-              <Text style={styles.buttonText}>Login</Text>
-            </TouchableOpacity>
           </View>
-        </KeyboardAvoidingView>
-      </LinearGradient>
-    </ScrollView>
+
+          {/* Signup link */}
+          <Text style={styles.normalText}>Don't have an account?</Text>
+          <TouchableOpacity onPress={() => router.replace("/signup")}>
+            <Text style={styles.buttonTextWithUnderline}>Sign Up</Text>
+          </TouchableOpacity>
+
+          {/* Login button */}
+          <TouchableOpacity
+            style={styles.button}
+            onPress={() => router.replace("/tabs/home")}
+          >
+            <Text style={styles.buttonText}>Login</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </SafeAreaView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    ...StyleSheet.absoluteFillObject, // ensures gradient covers whole screen
-  },
-  upperContainer: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  innerContainer: {
-    flex: 1,
-    alignItems: "center",
-    padding: 20,
   },
   logo: {
     width: 250,
     height: 250,
+    alignSelf: "center",
+    marginBottom: 10,
   },
   title: {
     fontSize: 36,
     fontWeight: "bold",
     color: "white",
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  inputContainer: {
+    flexDirection: "row",
+    width: "90%",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    marginBottom: 15,
+    alignSelf: "center",
+  },
+  inputIcon: {
+    width: 40,
+    height: 40,
   },
   normalText: {
     color: "white",
     fontSize: 20,
     fontWeight: "bold",
     marginBottom: 10,
-  },
-  imagesWithInput: {
-    flexDirection: "row",
+    textAlign: "center",
   },
   input: {
     width: "90%",
@@ -98,6 +112,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     marginBottom: 15,
+    alignSelf: "center",
   },
   button: {
     width: "50%",
@@ -106,6 +121,7 @@ const styles = StyleSheet.create({
     padding: 15,
     alignItems: "center",
     marginTop: 25,
+    alignSelf: "center",
   },
   buttonText: {
     color: "white",
@@ -117,11 +133,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
     textDecorationLine: "underline",
+    textAlign: "center",
   },
   scrollContainer: {
     flexGrow: 1,
     justifyContent: "center",
-    alignItems: "center",
     paddingBottom: 40,
   },
 });

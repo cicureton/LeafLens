@@ -1,6 +1,6 @@
+import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import React from "react";
-import { Image } from "react-native";
 
 const _layout = () => {
   return (
@@ -10,13 +10,12 @@ const _layout = () => {
         options={{
           title: "For You",
           headerShown: false,
-          tabBarIcon: ({ focused }) => (
-            <>
-              <Image
-                source={require("../../assets/images/ForYou.png")}
-                className="size-7"
-              />
-            </>
+          tabBarIcon: ({ focused, color, size }) => (
+            <Ionicons
+              name={focused ? "home" : "home-outline"}
+              size={size}
+              color={color}
+            />
           ),
         }}
       />
@@ -25,13 +24,14 @@ const _layout = () => {
         options={{
           title: "Forum",
           headerShown: false,
-          tabBarIcon: ({ focused }) => (
-            <>
-              <Image
-                source={require("../../assets/images/Forum.png")}
-                className="size-7"
-              />
-            </>
+          tabBarIcon: ({ focused, color, size }) => (
+            <Ionicons
+              name={
+                focused ? "chatbubble-ellipses" : "chatbubble-ellipses-outline"
+              }
+              size={size}
+              color={color}
+            />
           ),
         }}
       />
@@ -40,11 +40,11 @@ const _layout = () => {
         options={{
           tabBarLabel: () => null,
           headerShown: false,
-          tabBarIcon: ({ focused }) => (
-            <Image
-              source={require("../../assets/images/Camera.png")}
-              className="size-20"
-              style={{ tintColor: focused ? "#2e8b57" : "#00A86B" }}
+          tabBarIcon: ({ focused, color, size }) => (
+            <Ionicons
+              name="camera"
+              size={size + 8}
+              color={focused ? "#3f704d" : color}
             />
           ),
         }}
@@ -54,13 +54,12 @@ const _layout = () => {
         options={{
           title: "Plants",
           headerShown: false,
-          tabBarIcon: ({ focused }) => (
-            <>
-              <Image
-                source={require("../../assets/images/Plants.png")}
-                className="size-7"
-              />
-            </>
+          tabBarIcon: ({ focused, color, size }) => (
+            <Ionicons
+              name={focused ? "leaf" : "leaf-outline"}
+              size={size}
+              color={color}
+            />
           ),
         }}
       />
@@ -69,13 +68,12 @@ const _layout = () => {
         options={{
           title: "Profile",
           headerShown: false,
-          tabBarIcon: ({ focused }) => (
-            <>
-              <Image
-                source={require("../../assets/images/Profile.png")}
-                className="size-7"
-              />
-            </>
+          tabBarIcon: ({ focused, color, size }) => (
+            <Ionicons
+              name={focused ? "person-circle" : "person-circle-outline"}
+              size={size}
+              color={color}
+            />
           ),
         }}
       />

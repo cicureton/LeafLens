@@ -2,8 +2,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import {
   Image,
-  KeyboardAvoidingView,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -11,15 +9,13 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const Signup = () => {
   return (
-    <ScrollView contentContainerStyle={styles.scrollContainer}>
-      <LinearGradient colors={["#043927", "#00A86B"]} style={styles.container}>
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-        >
+    <LinearGradient colors={["#043927", "#00A86B"]} style={styles.container}>
+      <SafeAreaView style={{ flex: 1 }}>
+        <ScrollView contentContainerStyle={styles.scrollContainer}>
           {/* Logo + App Title */}
           <View style={styles.upperContainer}>
             <Image
@@ -34,12 +30,17 @@ const Signup = () => {
             <Text style={styles.subtitle}>Create Account</Text>
 
             <Text style={styles.normalText}>Username?</Text>
-            <TextInput style={styles.input} placeholder="Username" />
+            <TextInput
+              style={styles.input}
+              placeholder="Username"
+              placeholderTextColor="#666"
+            />
 
             <Text style={styles.normalText}>Email?</Text>
             <TextInput
               style={styles.input}
               placeholder="Email"
+              placeholderTextColor="#666"
               keyboardType="email-address"
             />
 
@@ -47,6 +48,7 @@ const Signup = () => {
             <TextInput
               style={styles.input}
               placeholder="Password"
+              placeholderTextColor="#666"
               secureTextEntry
             />
 
@@ -67,9 +69,9 @@ const Signup = () => {
               <Text style={styles.buttonTextWithUnderline}>Login</Text>
             </TouchableOpacity>
           </View>
-        </KeyboardAvoidingView>
-      </LinearGradient>
-    </ScrollView>
+        </ScrollView>
+      </SafeAreaView>
+    </LinearGradient>
   );
 };
 
