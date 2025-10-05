@@ -1,6 +1,6 @@
 ## 60% Progress Check
 - Decided to utilize FastAPI instead of Flask because Leaf lens needs fast, async APIs for handling uploads, notifications and external api calls
-- The app requires real-time features (like forum, alerts, community sharing)
+  - The app requires real-time features (like forum, alerts, community sharing)
 - It’s better aligned with performance, scalability, and reliability requirements 
 - Built-in docs
 Made tweaks to the database structure
