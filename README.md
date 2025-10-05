@@ -1,9 +1,8 @@
 ## 60% Progress Check
-Decided to utilize FastAPI instead of Flask because…
-Leaf lens needs fast, async APIs for handling uploads, notifications and external api calls
-The app requires real-time features (like forum, alerts, community sharing)
-It’s better aligned with performance, scalability, and reliability requirements 
-Built-in docs
+- Decided to utilize FastAPI instead of Flask because Leaf lens needs fast, async APIs for handling uploads, notifications and external api calls
+- The app requires real-time features (like forum, alerts, community sharing)
+- It’s better aligned with performance, scalability, and reliability requirements 
+- Built-in docs
 Made tweaks to the database structure
 Removed the “plant_diseases” link database because it was redundant due to the scan table already linking the plant and disease together
 Add the scan_images table to the database
