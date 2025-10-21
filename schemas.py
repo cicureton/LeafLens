@@ -19,8 +19,8 @@ class UserResponse(UserBase):
 
 class PlantBase(BaseModel):
     name: str
+    common_name: Optional[str] = None
     species: Optional[str] = None
-    category: Optional[str] = None
 
 class PlantCreate(PlantBase):
     pass
