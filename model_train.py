@@ -18,7 +18,7 @@ mobilenet_v3_large = models.mobilenet_v3_large(weights="IMAGENET1K_V2")
 mobilenet_v3_large.classifier = nn.Identity()
 
 # Freeze early layers so we just train the last convolutional layers
-for param in mobilenet_v3_large.features[:-10].parameters():
+for param in mobilenet_v3_large.features[:-3].parameters():
     param.requires_grad = False
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
