@@ -1,10 +1,26 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import React from "react";
+import { View } from "react-native";
 
 const _layout = () => {
   return (
-    <Tabs>
+    <Tabs
+      screenOptions={{
+        // Global tab bar styling
+        tabBarStyle: {
+          backgroundColor: "white",
+          height: 85,
+          paddingTop: 10,
+        },
+        tabBarActiveTintColor: "#3f704d",
+        tabBarInactiveTintColor: "#99744a",
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: "500",
+        },
+      }}
+    >
       <Tabs.Screen
         name="home"
         options={{
@@ -41,11 +57,28 @@ const _layout = () => {
           tabBarLabel: () => null,
           headerShown: false,
           tabBarIcon: ({ focused, color, size }) => (
-            <Ionicons
-              name="camera"
-              size={size + 8}
-              color={focused ? "#3f704d" : color}
-            />
+            <View
+              style={{
+                backgroundColor: focused ? "#3f704d" : "white",
+                width: 75,
+                height: 75,
+                borderRadius: 50,
+                justifyContent: "center",
+                alignItems: "center",
+                marginBottom: 15,
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.3,
+                shadowRadius: 4,
+                elevation: 5,
+              }}
+            >
+              <Ionicons
+                name="camera"
+                size={size + 12}
+                color={focused ? "white" : color}
+              />
+            </View>
           ),
         }}
       />

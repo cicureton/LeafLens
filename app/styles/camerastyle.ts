@@ -17,11 +17,11 @@ export const styles = StyleSheet.create({
     position: "absolute",
     bottom: 50,
     left: 0,
-    right: 0,
+    right: 10,
     flexDirection: "row",
     justifyContent: "space-around",
     alignItems: "center",
-    paddingHorizontal: 20,
+    paddingHorizontal: 25,
   },
   button: {
     padding: 15,
