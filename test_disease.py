@@ -3,7 +3,7 @@ from torchvision import models, transforms
 from PIL import Image
 import torch.nn as nn
 from torchvision import datasets
-
+#
 image_paths = [
     "diseased_plants/mildew.jpg",
     "diseased_plants/black_rot.jpg",
