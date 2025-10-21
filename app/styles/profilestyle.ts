@@ -172,6 +172,18 @@ export const styles = StyleSheet.create({
     fontSize: 12,
     color: "#999",
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 10,
+  },
+  
 });
 
 export default styles;

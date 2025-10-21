@@ -2,7 +2,8 @@ import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import * as SecureStorage from "expo-secure-store";
-import React, { useState } from "react";
+import { onAuthStateChanged, signOut } from "firebase/auth";
+import React, { useEffect, useState } from "react";
 import {
   Alert,
   Image,
@@ -13,23 +14,63 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { auth } from "../../app/firebase";
 import { styles } from "../styles/profilestyle";
 
 const ProfileScreen = () => {
   const router = useRouter();
   const [profileImage, setProfileImage] = useState(null);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [userData, setUserData] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // Sample user data
-  const userData = {
-    username: "plantlover23",
-    name: "Alex Johnson",
-    email: "alex.johnson@email.com",
-    joinDate: "January 2024",
-    plantsCount: 12,
-    postsCount: 8,
-    likesCount: 47,
-  };
+  // Load user data from Firebase and AsyncStorage
+  useEffect(() => {
+    const loadUserData = async () => {
+      try {
+        // Get user from Firebase auth
+        const currentUser = auth.currentUser;
+        
+        if (currentUser) {
+          // Try to get additional data from AsyncStorage
+          const storedUserData = await AsyncStorage.getItem('userData');
+          const parsedData = storedUserData ? JSON.parse(storedUserData) : {};
+          
+          // Combine Firebase user data with stored data
+          const userInfo = {
+            uid: currentUser.uid,
+            username: currentUser.displayName?.toLowerCase().replace(/\s+/g, '') || "plantlover",
+            name: currentUser.displayName || "Plant Lover",
+            email: currentUser.email,
+            joinDate: new Date(currentUser.metadata.creationTime).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+            plantsCount: 0, // You can fetch these from your backend later
+            postsCount: 0,
+            likesCount: 0,
+            photoURL: currentUser.photoURL,
+            ...parsedData // Override with any stored data
+          };
+          
+          setUserData(userInfo);
+        }
+      } catch (error) {
+        console.error("Error loading user data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // Listen for auth state changes
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        loadUserData();
+      } else {
+        // No user signed in, redirect to login
+        router.replace("/");
+      }
+    });
+
+    return unsubscribe;
+  }, []);
 
   const handleSignOut = async () => {
     Alert.alert("Sign Out", "Are you sure you want to sign out?", [
@@ -39,9 +80,12 @@ const ProfileScreen = () => {
         style: "destructive",
         onPress: async () => {
           try {
-            // Clear any stored authentication tokens
+            // Sign out from Firebase
+            await signOut(auth);
+            
+            // Clear local storage
+            await AsyncStorage.removeItem("userData");
             await SecureStorage.deleteItemAsync("auth_token");
-            await AsyncStorage.removeItem("user_data");
 
             // Navigate to login screen
             router.replace("/");
@@ -51,6 +95,12 @@ const ProfileScreen = () => {
           }
         },
       },
+    ]);
+  };
+
+  const handleEditProfile = () => {
+    Alert.alert("Edit Profile", "This feature will be available soon!", [
+      { text: "OK" }
     ]);
   };
 
@@ -103,10 +153,35 @@ const ProfileScreen = () => {
   ];
 
   const stats = [
-    { label: "Plants", value: userData.plantsCount },
-    { label: "Posts", value: userData.postsCount },
-    { label: "Likes", value: userData.likesCount },
+    { label: "Plants", value: userData?.plantsCount || 0 },
+    { label: "Posts", value: userData?.postsCount || 0 },
+    { label: "Likes", value: userData?.likesCount || 0 },
   ];
+
+  // Show loading state
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <Text>Loading profile...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Show error state if no user data
+  if (!userData) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.errorContainer}>
+          <Text>Unable to load profile</Text>
+          <TouchableOpacity onPress={() => router.replace("/")}>
+            <Text>Go to Login</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={["right", "left", "top"]}>
@@ -122,7 +197,12 @@ const ProfileScreen = () => {
         {/* Profile Section */}
         <View style={styles.profileSection}>
           <View style={styles.profileImageContainer}>
-            {profileImage ? (
+            {userData.photoURL ? (
+              <Image
+                source={{ uri: userData.photoURL }}
+                style={styles.profileImage}
+              />
+            ) : profileImage ? (
               <Image
                 source={{ uri: profileImage }}
                 style={styles.profileImage}
@@ -142,7 +222,10 @@ const ProfileScreen = () => {
           <Text style={styles.userEmail}>{userData.email}</Text>
           <Text style={styles.joinDate}>Member since {userData.joinDate}</Text>
 
-          <TouchableOpacity style={styles.editProfileButton}>
+          <TouchableOpacity 
+            style={styles.editProfileButton}
+            onPress={handleEditProfile}
+          >
             <Text style={styles.editProfileText}>Edit Profile</Text>
           </TouchableOpacity>
         </View>
