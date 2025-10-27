@@ -1,5 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
-import React, { useState } from "react";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { onAuthStateChanged, User } from "firebase/auth";
+import React, { useEffect, useState } from "react";
 import {
   Alert,
   FlatList,
@@ -12,7 +14,25 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { auth } from "../../app/firebase";
 import { styles } from "../styles/forumstyle";
+
+// Define Post type
+interface Post {
+  id: string;
+  title: string;
+  content: string;
+  author: string;
+  authorId: string;
+  replies: number;
+  likes: number;
+  timestamp: string;
+  category: string;
+  authorAvatar: string;
+  tags: string[];
+  isLiked: boolean;
+  likedBy: string[]; // Array of user IDs who liked the post
+}
 
 const ForumScreen = () => {
   const [activeTab, setActiveTab] = useState("all");
@@ -21,16 +41,51 @@ const ForumScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [newPostTitle, setNewPostTitle] = useState("");
   const [newPostContent, setNewPostContent] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("plant-care"); // Set default category
+  const [selectedCategory, setSelectedCategory] = useState("plant-care");
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [userData, setUserData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-  // Sample forum data
-  const [forumPosts, setForumPosts] = useState([
+  // Load user data from Firebase
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      setCurrentUser(user);
+      
+      if (user) {
+        // Try to get user data from AsyncStorage
+        try {
+          const storedUserData = await AsyncStorage.getItem('userData');
+          if (storedUserData) {
+            setUserData(JSON.parse(storedUserData));
+          } else {
+            // Create basic user data from Firebase
+            const basicUserData = {
+              displayName: user.displayName || user.email?.split('@')[0] || 'Plant Lover',
+              email: user.email,
+              uid: user.uid
+            };
+            setUserData(basicUserData);
+          }
+        } catch (error) {
+          console.error('Error loading user data:', error);
+        }
+      } else {
+        setUserData(null);
+      }
+      setLoading(false);
+    });
+
+    return unsubscribe;
+  }, []);
+
+  // Sample forum data - in a real app, this would come from your backend
+  const [forumPosts, setForumPosts] = useState<Post[]>([
     {
       id: "1",
       title: "Help! My Monstera has yellow leaves",
-      content:
-        "I noticed my Monstera plant has been developing yellow leaves over the past week. The soil feels moist but not soggy. What could be causing this? I'm worried it might be root rot.",
+      content: "I noticed my Monstera plant has been developing yellow leaves over the past week. The soil feels moist but not soggy. What could be causing this? I'm worried it might be root rot.",
       author: "plantlover23",
+      authorId: "user123",
       replies: 12,
       likes: 24,
       timestamp: "2 hours ago",
@@ -38,24 +93,25 @@ const ForumScreen = () => {
       authorAvatar: "🌿",
       tags: ["monstera", "yellow-leaves", "help"],
       isLiked: false,
+      likedBy: []
     },
     {
       id: "2",
       title: "Best soil mix for succulents?",
-      content:
-        "Looking for recommendations on the perfect soil mix for my succulent collection. I want something that provides good drainage but also retains some moisture.",
+      content: "Looking for recommendations on the perfect soil mix for my succulent collection. I want something that provides good drainage but also retains some moisture.",
       author: "succulentqueen",
+      authorId: "user456",
       replies: 8,
       likes: 15,
       timestamp: "5 hours ago",
       category: "soil",
       authorAvatar: "🌵",
       tags: ["succulents", "soil-mix", "drainage"],
-      isLiked: true,
+      isLiked: false,
+      likedBy: []
     },
   ]);
 
-  // category filtering
   const categories = [
     { id: "all", name: "All Topics", icon: "🌿", color: "#3f704d" },
     { id: "plant-care", name: "Plant Care", icon: "💧", color: "#4a90e2" },
@@ -64,33 +120,48 @@ const ForumScreen = () => {
     { id: "identification", name: "Plant ID", icon: "🔍", color: "#f39c12" },
   ];
 
-  // pull to refresh, refreshes forum content
   const onRefresh = () => {
     setRefreshing(true);
-    // Simulate API call
+    // Simulate API call - in real app, fetch from your backend
     setTimeout(() => {
       setRefreshing(false);
       Alert.alert("Updated", "Forum posts refreshed!");
     }, 1000);
   };
 
-  // interactive posts, like, reply, share functionality
-  const handleLike = (postId) => {
+  // Handle liking a post
+  const handleLike = (postId: string) => {
+    if (!currentUser) {
+      Alert.alert("Sign In Required", "Please sign in to like posts");
+      return;
+    }
+
     setForumPosts((posts) =>
-      posts.map((post) =>
-        post.id === postId
-          ? {
-              ...post,
-              likes: post.isLiked ? post.likes - 1 : post.likes + 1,
-              isLiked: !post.isLiked,
-            }
-          : post
-      )
+      posts.map((post) => {
+        if (post.id === postId) {
+          const userLiked = post.likedBy.includes(currentUser.uid);
+          
+          return {
+            ...post,
+            likes: userLiked ? post.likes - 1 : post.likes + 1,
+            isLiked: !userLiked,
+            likedBy: userLiked 
+              ? post.likedBy.filter(id => id !== currentUser.uid)
+              : [...post.likedBy, currentUser.uid]
+          };
+        }
+        return post;
+      })
     );
   };
 
-  // create new post, modal for new discussions
+  // Handle creating a new post
   const handleCreatePost = () => {
+    if (!currentUser) {
+      Alert.alert("Sign In Required", "Please sign in to create posts");
+      return;
+    }
+
     if (!newPostTitle.trim() || !newPostContent.trim()) {
       Alert.alert("Error", "Please fill in both title and content");
       return;
@@ -101,29 +172,32 @@ const ForumScreen = () => {
       return;
     }
 
-    const newPost = {
+    // Create new post object
+    const newPost: Post = {
       id: Date.now().toString(),
       title: newPostTitle,
       content: newPostContent,
-      author: "You",
+      author: userData?.displayName || "Anonymous",
+      authorId: currentUser.uid,
       replies: 0,
       likes: 0,
       timestamp: "Just now",
-      category: selectedCategory, // Use the selected category
+      category: selectedCategory,
       authorAvatar: "👤",
       tags: ["new"],
       isLiked: false,
+      likedBy: []
     };
 
     setForumPosts([newPost, ...forumPosts]);
     setNewPostTitle("");
     setNewPostContent("");
-    setSelectedCategory("plant-care"); // Reset to default
+    setSelectedCategory("plant-care");
     setShowNewPostModal(false);
     Alert.alert("Success", "Your post has been published!");
   };
 
-  // search functionality, search post by title, content, tags
+  // Filter posts based on search query and active category tab
   const filteredPosts = forumPosts.filter((post) => {
     const matchesSearch =
       post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -135,14 +209,16 @@ const ForumScreen = () => {
     return matchesSearch && matchesCategory;
   });
 
-  // tag system and engagement metrics
-  const renderPostItem = ({ item }) => (
+  // Render individual post item
+  const renderPostItem = ({ item }: { item: Post }) => (
     <TouchableOpacity style={styles.postCard}>
       <View style={styles.postHeader}>
         <View style={styles.authorInfo}>
           <Text style={styles.authorAvatar}>{item.authorAvatar}</Text>
           <View>
-            <Text style={styles.author}>{item.author}</Text>
+            <Text style={styles.author}>
+              {item.authorId === currentUser?.uid ? userData?.displayName : item.author}
+            </Text>
             <Text style={styles.timestamp}>{item.timestamp}</Text>
           </View>
         </View>
@@ -203,7 +279,7 @@ const ForumScreen = () => {
     </TouchableOpacity>
   );
 
-  // Reset modal state when closed
+  // Handle closing new post modal
   const handleCloseModal = () => {
     setNewPostTitle("");
     setNewPostContent("");
@@ -211,7 +287,27 @@ const ForumScreen = () => {
     setShowNewPostModal(false);
   };
 
-  // displays the posts
+  // Handle pressing new post button
+  const handleNewPostPress = () => {
+    if (!currentUser) {
+      Alert.alert("Sign In Required", "Please sign in to create posts");
+      return;
+    }
+    setShowNewPostModal(true);
+  };
+
+  // Show loading state
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <Text>Loading...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Main forum screen
   return (
     <SafeAreaView style={styles.container} edges={["right", "left"]}>
       {/* Header */}
@@ -219,12 +315,27 @@ const ForumScreen = () => {
         <View>
           <Text style={styles.headerTitle}>Plant Community</Text>
           <Text style={styles.headerSubtitle}>
-            Ask questions, share tips, help fellow plant lovers
+            {currentUser 
+              ? `Welcome, ${userData?.displayName || 'Plant Lover'}!` 
+              : "Ask questions, share tips, help fellow plant lovers"}
           </Text>
         </View>
-        <TouchableOpacity style={styles.notificationButton}>
-          <Ionicons name="notifications-outline" size={24} color="white" />
-        </TouchableOpacity>
+        {currentUser ? (
+          <TouchableOpacity style={styles.notificationButton}>
+            <Ionicons name="notifications-outline" size={24} color="white" />
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity 
+            style={styles.signInButton}
+            onPress={() => {
+              // Navigate to login screen
+              // You might need to adjust this based on your routing
+              Alert.alert("Sign In", "Please sign in to access all features");
+            }}
+          >
+            <Text style={styles.signInText}>Sign In</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Search Bar */}
@@ -294,21 +405,27 @@ const ForumScreen = () => {
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <Ionicons name="leaf-outline" size={64} color="#ccc" />
-            <Text style={styles.emptyStateText}>No posts found</Text>
+            <Text style={styles.emptyStateText}>
+              {currentUser ? "No posts found" : "Sign in to join the discussion"}
+            </Text>
             <Text style={styles.emptyStateSubtext}>
-              Try changing your search or category filter
+              {currentUser 
+                ? "Try changing your search or category filter" 
+                : "Connect with fellow plant lovers"}
             </Text>
           </View>
         }
       />
 
-      {/* Create New Post Button */}
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => setShowNewPostModal(true)}
-      >
-        <Ionicons name="create" size={24} color="white" />
-      </TouchableOpacity>
+      {/* Create New Post Button - Only show if signed in */}
+      {currentUser && (
+        <TouchableOpacity
+          style={styles.fab}
+          onPress={handleNewPostPress}
+        >
+          <Ionicons name="create" size={24} color="white" />
+        </TouchableOpacity>
+      )}
 
       {/* New Post Modal */}
       <Modal
@@ -375,7 +492,6 @@ const ForumScreen = () => {
                 ))}
             </View>
 
-            {/* Show selected category */}
             {selectedCategory && (
               <View style={styles.selectedCategoryDisplay}>
                 <Text style={styles.selectedCategoryText}>

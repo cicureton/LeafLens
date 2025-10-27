@@ -22,4 +22,5 @@ const auth = initializeAuth(app, {
 });
 
 export { auth };
+export default app;
 

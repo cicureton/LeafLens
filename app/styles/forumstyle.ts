@@ -323,25 +323,44 @@ export const styles = StyleSheet.create({
     fontWeight: "600",
     color: "white",
   },
-// Add these to your existing styles
-categoryOptionTextActive: {
-  color: 'white',
-  fontWeight: '600',
-},
-selectedCategoryDisplay: {
-  backgroundColor: '#e8f5e8',
-  padding: 12,
-  borderRadius: 8,
-  marginTop: 10,
-},
-selectedCategoryText: {
-  fontSize: 14,
-  color: '#3f704d',
-},
-postButtonDisabled: {
-  backgroundColor: '#cccccc',
-  opacity: 0.6,
-},
+  // Add these to your existing styles
+  categoryOptionTextActive: {
+    color: "white",
+    fontWeight: "600",
+  },
+  selectedCategoryDisplay: {
+    backgroundColor: "#e8f5e8",
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 10,
+  },
+  selectedCategoryText: {
+    fontSize: 14,
+    color: "#3f704d",
+  },
+  postButtonDisabled: {
+    backgroundColor: "#cccccc",
+    opacity: 0.6,
+  },
+
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  signInButton: {
+    backgroundColor: "#3f704d",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+
+  signInText: {
+    color: "white",
+    fontWeight: "600",
+    fontSize: 14,
+  },
 });
 
 export default styles;
