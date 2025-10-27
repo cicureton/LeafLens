@@ -20,62 +20,8 @@ const Home = () => {
   const router = useRouter();
 
   // State for posts with like functionality
-  const [recentPosts, setRecentPosts] = useState([
-    {
-      id: 1,
-      username: "plantlover23",
-      content:
-        "My Monstera recently had blight and I used neem oil to fix it! Worked like a charm!",
-      timestamp: "2 hours ago",
-      likes: 12,
-      isLiked: false,
-    },
-    {
-      id: 2,
-      username: "greenthumb42",
-      content:
-        "Just propagated my snake plant successfully! Here's how I did it step by step...",
-      timestamp: "5 hours ago",
-      likes: 8,
-      isLiked: false,
-    },
-    {
-      id: 3,
-      username: "botanyfan99",
-      content:
-        "Does anyone know why my fern's leaves are turning brown? Humidity is at 60%...",
-      timestamp: "1 day ago",
-      likes: 15,
-      isLiked: false,
-    },
-  ]);
-
-  const [yourPosts, setYourPosts] = useState([
-    {
-      id: 1,
-      username: "You",
-      content: "My plant is sick, what i do.",
-      timestamp: "1 hour ago",
-      likes: 3,
-      isLiked: false,
-    },
-    {
-      id: 2,
-      username: "You",
-      content: "How do I know if I have 80 HDs?",
-      timestamp: "3 days ago",
-      likes: 7,
-      isLiked: false,
-    },
-    {
-      id: 3,
-      username: "You",
-      content: "Anyone single?",
-      timestamp: "1 week ago",
-      likes: 5,
-      isLiked: false,
-    },
-  ]);
+  const [recentPosts, setRecentPosts] = useState([]);
+  const [yourPosts, setYourPosts] = useState([]);
 
   // Function to handle like/unlike for recent posts
   const handleLikeRecentPost = (postId: number) => {

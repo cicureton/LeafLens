@@ -78,39 +78,7 @@ const ForumScreen = () => {
     return unsubscribe;
   }, []);
 
-  // Sample forum data - in a real app, this would come from your backend
-  const [forumPosts, setForumPosts] = useState<Post[]>([
-    {
-      id: "1",
-      title: "Help! My Monstera has yellow leaves",
-      content: "I noticed my Monstera plant has been developing yellow leaves over the past week. The soil feels moist but not soggy. What could be causing this? I'm worried it might be root rot.",
-      author: "plantlover23",
-      authorId: "user123",
-      replies: 12,
-      likes: 24,
-      timestamp: "2 hours ago",
-      category: "plant-care",
-      authorAvatar: "🌿",
-      tags: ["monstera", "yellow-leaves", "help"],
-      isLiked: false,
-      likedBy: []
-    },
-    {
-      id: "2",
-      title: "Best soil mix for succulents?",
-      content: "Looking for recommendations on the perfect soil mix for my succulent collection. I want something that provides good drainage but also retains some moisture.",
-      author: "succulentqueen",
-      authorId: "user456",
-      replies: 8,
-      likes: 15,
-      timestamp: "5 hours ago",
-      category: "soil",
-      authorAvatar: "🌵",
-      tags: ["succulents", "soil-mix", "drainage"],
-      isLiked: false,
-      likedBy: []
-    },
-  ]);
+  const [forumPosts, setForumPosts] = useState<Post[]>([]);
 
   const categories = [
     { id: "all", name: "All Topics", icon: "🌿", color: "#3f704d" },
@@ -120,6 +88,7 @@ const ForumScreen = () => {
     { id: "identification", name: "Plant ID", icon: "🔍", color: "#f39c12" },
   ];
 
+  // Handle pull-to-refresh
   const onRefresh = () => {
     setRefreshing(true);
     // Simulate API call - in real app, fetch from your backend

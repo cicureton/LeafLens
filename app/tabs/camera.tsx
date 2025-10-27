@@ -1,6 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CameraType, CameraView, useCameraPermissions } from "expo-camera";
-import { useRef, useState } from "react";
+import * as FileSystem from 'expo-file-system/legacy';
+import { useEffect, useRef, useState } from "react";
 import {
   Alert,
   Button,
@@ -16,7 +18,53 @@ const CameraScreen = () => {
   const [facing, setFacing] = useState<CameraType>("back");
   const [permission, requestPermission] = useCameraPermissions();
   const [photos, setPhotos] = useState([]); // Array to store multiple photos
+  const [isPreviewMode, setIsPreviewMode] = useState(false); // New state to control mode
   const cameraRef = useRef(null);
+
+  // Load saved photos on component mount
+  useEffect(() => {
+    loadSavedPhotos();
+  }, []);
+
+  // Load photos from AsyncStorage
+  const loadSavedPhotos = async () => {
+    try {
+      const savedPhotos = await AsyncStorage.getItem('@plant_photos');
+      if (savedPhotos) {
+        setPhotos(JSON.parse(savedPhotos));
+      }
+    } catch (error) {
+      console.error('Error loading photos:', error);
+    }
+  };
+
+  // Save photos to AsyncStorage
+  const savePhotosToStorage = async (photosArray) => {
+    try {
+      await AsyncStorage.setItem('@plant_photos', JSON.stringify(photosArray));
+    } catch (error) {
+      console.error('Error saving photos:', error);
+    }
+  };
+
+  // Save photo to file system using legacy API
+  const savePhotoToFileSystem = async (tempUri) => {
+    try {
+      const fileName = `plant_photo_${Date.now()}.jpg`;
+      const permanentUri = `${FileSystem.documentDirectory}${fileName}`;
+      
+      // Using legacy copyAsync - this should work now
+      await FileSystem.copyAsync({
+        from: tempUri,
+        to: permanentUri
+      });
+      
+      return permanentUri;
+    } catch (error) {
+      console.error('Error saving photo:', error);
+      return tempUri; // Fallback to original URI
+    }
+  };
 
   // ask for permissions
   if (!permission) {
@@ -48,25 +96,67 @@ const CameraScreen = () => {
     if (cameraRef.current) {
       try {
         const photo = await cameraRef.current.takePictureAsync();
-        setPhotos(prevPhotos => [...prevPhotos, {
+        
+        // Save to permanent storage
+        const savedUri = await savePhotoToFileSystem(photo.uri);
+        
+        const newPhotos = [...photos, {
           id: Date.now().toString(),
-          uri: photo.uri,
-          timestamp: new Date().toLocaleTimeString()
-        }]);
-        Alert.alert("Success", "Photo added to collection!");
+          uri: savedUri, // Use permanent URI
+          timestamp: new Date().toLocaleTimeString(),
+          date: new Date().toISOString()
+        }];
+        
+        setPhotos(newPhotos);
+        await savePhotosToStorage(newPhotos);
+        
+        Alert.alert("Success", "Photo added! You can take more photos or go to preview.");
       } catch (error) {
+        console.error('Error taking picture:', error);
         Alert.alert("Error", "Failed to take picture");
       }
     }
   };
 
+  // Go to preview mode
+  const goToPreview = () => {
+    if (photos.length === 0) {
+      Alert.alert("No Photos", "Take some photos first!");
+      return;
+    }
+    setIsPreviewMode(true);
+  };
+
+  // Return to camera mode
+  const returnToCamera = () => {
+    setIsPreviewMode(false);
+  };
+
   // remove a specific photo
-  const removePhoto = (photoId: string) => {
-    setPhotos(prevPhotos => prevPhotos.filter(photo => photo.id !== photoId));
+  const removePhoto = async (photoId: string) => {
+    try {
+      // Find photo to remove from file system
+      const photoToRemove = photos.find(photo => photo.id === photoId);
+      if (photoToRemove) {
+        // Delete from file system using legacy API
+        await FileSystem.deleteAsync(photoToRemove.uri, { idempotent: true });
+      }
+      
+      const newPhotos = photos.filter(photo => photo.id !== photoId);
+      setPhotos(newPhotos);
+      await savePhotosToStorage(newPhotos);
+      
+      // If no photos left, return to camera
+      if (newPhotos.length === 0) {
+        setIsPreviewMode(false);
+      }
+    } catch (error) {
+      console.error('Error removing photo:', error);
+    }
   };
 
   // clear all photos
-  const clearAllPhotos = () => {
+  const clearAllPhotos = async () => {
     Alert.alert(
       "Clear All Photos",
       "Are you sure you want to delete all photos?",
@@ -75,7 +165,23 @@ const CameraScreen = () => {
         { 
           text: "Clear All", 
           style: "destructive",
-          onPress: () => setPhotos([])
+          onPress: async () => {
+            try {
+              // Delete all photos from file system
+              for (const photo of photos) {
+                try {
+                  await FileSystem.deleteAsync(photo.uri, { idempotent: true });
+                } catch (fileError) {
+                  console.log('File already deleted or not found');
+                }
+              }
+              setPhotos([]);
+              await AsyncStorage.removeItem('@plant_photos');
+              setIsPreviewMode(false); // Return to camera
+            } catch (error) {
+              console.error('Error clearing photos:', error);
+            }
+          }
         },
       ]
     );
@@ -122,7 +228,7 @@ const CameraScreen = () => {
   );
 
   // Photo preview screen
-  if (photos.length > 0) {
+  if (isPreviewMode) {
     return (
       <View style={styles.container}>
         <View style={styles.previewHeader}>
@@ -145,7 +251,7 @@ const CameraScreen = () => {
         <View style={styles.previewButtons}>
           <TouchableOpacity 
             style={[styles.actionButton, styles.retakeButton]}
-            onPress={() => setPhotos([])}
+            onPress={returnToCamera}
           >
             <Ionicons name="camera" size={20} color="white" />
             <Text style={styles.actionButtonText}>Take More</Text>
@@ -179,14 +285,27 @@ const CameraScreen = () => {
           <View style={styles.captureCircle} />
         </TouchableOpacity>
 
-        <View style={styles.placeholder} />
+        {/* Preview button instead of placeholder */}
+        <TouchableOpacity style={styles.button} onPress={goToPreview}>
+          <Ionicons name="images" size={30} color="white" />
+          {photos.length > 0 && (
+            <View style={styles.photoCountBadge}>
+              <Text style={styles.photoCountText}>{photos.length}</Text>
+            </View>
+          )}
+        </TouchableOpacity>
       </View>
 
       {/* Photo counter */}
       <View style={styles.photoCounter}>
         <Text style={styles.photoCounterText}>
-          Photos: {photos.length}
+          Photos Taken: {photos.length}
         </Text>
+        {photos.length > 0 && (
+          <TouchableOpacity onPress={goToPreview}>
+            <Text style={styles.viewPhotosText}>View Photos →</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );

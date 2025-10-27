@@ -153,6 +153,28 @@ export const styles = StyleSheet.create({
     fontWeight: "600",
     fontSize: 16,
   },
+  // Add these to your existing styles
+photoCountBadge: {
+  position: 'absolute',
+  top: -5,
+  right: -5,
+  backgroundColor: '#e74c3c',
+  borderRadius: 10,
+  width: 20,
+  height: 20,
+  justifyContent: 'center',
+  alignItems: 'center',
+},
+photoCountText: {
+  color: 'white',
+  fontSize: 12,
+  fontWeight: 'bold',
+},
+viewPhotosText: {
+  color: '#3498db',
+  fontSize: 16,
+  fontWeight: 'bold',
+},
 });
 
 export default styles;

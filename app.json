@@ -55,6 +55,13 @@
           "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone"
         }
       ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow LeafLens to access your photos.",
+          "savePhotosPermission": "Allow LeafLens to save photos."
+        }
+      ],
       "expo-secure-store",
       "expo-build-properties"
     ],

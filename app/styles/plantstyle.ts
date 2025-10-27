@@ -377,6 +377,249 @@ export const styles = StyleSheet.create({
     color: "white",
     marginLeft: 8,
   },
+  // Add these to your existing styles
+  plantActions: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 8,
+  },
+  photoButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: "#ecf0f1",
+    borderRadius: 12,
+  },
+  photoButtonText: {
+    fontSize: 12,
+    color: "#27ae60",
+    marginLeft: 4,
+  },
+  photoGallerySection: {
+    marginBottom: 20,
+  },
+  photoGallery: {
+    paddingVertical: 10,
+  },
+  userPhoto: {
+    width: 120,
+    height: 120,
+    borderRadius: 8,
+    marginRight: 10,
+  },
+  photoItem: {
+    marginRight: 10,
+  },
+  photoInfo: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 4,
+  },
+  photoTimestamp: {
+    fontSize: 12,
+    color: "#666",
+    flex: 1,
+  },
+  deletePhotoButton: {
+    padding: 4,
+  },
+  detailActions: {
+    marginTop: 20,
+  },
+  // Refresh and selection styles
+refreshButton: {
+  marginTop: 50,
+  padding: 8,
+},
+
+photoSelectedIndicator: {
+  position: 'absolute',
+  top: 8,
+  right: 8,
+  backgroundColor: '#27ae60',
+  borderRadius: 10,
+  width: 20,
+  height: 20,
+  justifyContent: 'center',
+  alignItems: 'center',
+  zIndex: 1,
+},
+
+selectedBadge: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  backgroundColor: '#27ae60',
+  paddingHorizontal: 6,
+  paddingVertical: 2,
+  borderRadius: 8,
+  marginRight: 4,
+},
+
+selectedText: {
+  color: 'white',
+  fontSize: 10,
+  fontWeight: 'bold',
+  marginLeft: 2,
+},
+
+photoActions: {
+  flexDirection: 'row',
+  alignItems: 'center',
+},
+
+// Photo selector styles
+selectorContent: {
+  flex: 1,
+  padding: 16,
+},
+
+selectorSubtitle: {
+  fontSize: 16,
+  color: '#666',
+  marginBottom: 16,
+  textAlign: 'center',
+},
+
+selectionInfo: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  marginBottom: 16,
+},
+
+selectionCount: {
+  fontSize: 14,
+  color: '#666',
+  fontWeight: '600',
+},
+
+selectAllButton: {
+  padding: 4,
+},
+
+selectAllText: {
+  color: '#27ae60',
+  fontSize: 14,
+  fontWeight: '600',
+},
+
+photoSelectorGrid: {
+  paddingBottom: 20,
+},
+
+cameraPhotoItem: {
+  width: '31%',
+  margin: '1%',
+  borderRadius: 8,
+  overflow: 'hidden',
+  borderWidth: 2,
+  borderColor: 'transparent',
+},
+
+cameraPhotoSelected: {
+  borderColor: '#27ae60',
+},
+
+cameraPhoto: {
+  width: '100%',
+  height: 100,
+  borderRadius: 6,
+},
+
+photoCheckbox: {
+  position: 'absolute',
+  top: 4,
+  right: 4,
+},
+
+selectorActions: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  paddingTop: 16,
+  borderTopWidth: 1,
+  borderTopColor: '#ecf0f1',
+},
+
+addPhotosButton: {
+  backgroundColor: '#27ae60',
+  paddingHorizontal: 20,
+  paddingVertical: 12,
+  borderRadius: 8,
+  flex: 1,
+  marginLeft: 12,
+  alignItems: 'center',
+},
+
+addPhotosButtonDisabled: {
+  backgroundColor: '#bdc3c7',
+},
+
+addPhotosButtonText: {
+  color: 'white',
+  fontSize: 16,
+  fontWeight: '600',
+},
+
+// Image overlay
+imageOverlay: {
+  position: 'absolute',
+  bottom: 0,
+  left: 0,
+  right: 0,
+  backgroundColor: 'rgba(0,0,0,0.6)',
+  padding: 8,
+  alignItems: 'center',
+},
+
+imageOverlayText: {
+  color: 'white',
+  fontSize: 12,
+  fontWeight: '600',
+},
+
+// Section header
+sectionHeader: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  marginBottom: 12,
+},
+
+photoCount: {
+  fontSize: 14,
+  color: '#666',
+},
+
+photoHint: {
+  fontSize: 12,
+  color: '#999',
+  textAlign: 'center',
+  marginTop: 8,
+  fontStyle: 'italic',
+},
+
+// Empty photos state
+emptyPhotos: {
+  flex: 1,
+  justifyContent: 'center',
+  alignItems: 'center',
+  paddingVertical: 60,
+},
+
+emptyPhotosText: {
+  fontSize: 18,
+  color: '#666',
+  marginTop: 16,
+},
+
+emptyPhotosSubtext: {
+  fontSize: 14,
+  color: '#999',
+  textAlign: 'center',
+  marginTop: 8,
+},
 });
 
 export default styles;
