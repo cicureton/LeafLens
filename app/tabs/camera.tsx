@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from "axios";
 import { CameraType, CameraView, useCameraPermissions } from "expo-camera";
 import * as FileSystem from 'expo-file-system/legacy';
 import { useEffect, useRef, useState } from "react";
@@ -188,28 +189,66 @@ const CameraScreen = () => {
   };
 
   // use photos (for analysis, saving, etc.)
-  const usePhotos = () => {
+  const usePhotos = async () => {
     if (photos.length === 0) {
       Alert.alert("No Photos", "Take some photos first!");
       return;
     }
-    
+  
     Alert.alert(
-      "Use Photos", 
+      "Use Photos",
       `Ready to analyze ${photos.length} plant photo(s)!`,
       [
         { text: "Cancel", style: "cancel" },
         { 
           text: "Analyze Plants", 
-          onPress: () => {
-            // Here you would send photos to your plant analysis API
-            console.log("Photos to analyze:", photos);
-            Alert.alert("Analysis Started", "Processing your plant photos...");
-          }
+          onPress: async () => {
+            try {
+  
+              // Create FormData to send multiple images
+              const formData = new FormData();
+              photos.forEach((photo, index) => {
+                formData.append("files", {
+                  uri: photo.uri,
+                  name: `plant_photo_${index}.jpg`,
+                  type: "image/jpeg",
+                } as any);
+              });
+  
+              console.log("Sending photos to backend:", formData);
+  
+              // POST to FastAPI backend
+              const response = await axios.post(
+                "https://leaflens-16s1.onrender.com/predict_species_and_disease_batch",
+                formData,
+                {
+                  headers: { "Content-Type": "multipart/form-data" },
+                  timeout: 30000, // optional: 30s timeout
+                }
+              );
+  
+              console.log("Backend response:", response.data);
+  
+              // Show predictions to user
+              Alert.alert(
+                "Predictions",
+                JSON.stringify(response.data.predictions, null, 2)
+              );
+            } catch (error: any) {
+              console.error("Error uploading or analyzing photos:", error);
+              Alert.alert(
+                "Error",
+                error.response?.data?.detail || "Failed to analyze photos"
+              );
+            } finally {
+              // Reset loading state
+            }
+          },
         },
       ]
     );
   };
+  
 
   // render individual photo in the preview list
   const renderPhotoItem = ({ item }) => (
