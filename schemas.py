@@ -98,6 +98,10 @@ class ForumPostBase(BaseModel):
     user_id: Optional[int] = None
     title: str
     content: str
+    like_count: int
+
+    class Config:
+        orm_mode = True
 
 class ForumPostCreate(ForumPostBase):
     pass

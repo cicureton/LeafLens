@@ -197,11 +197,23 @@ def get_forum_posts(
     db: Session = Depends(get_db)
 ):
     query = db.query(models.ForumPost)
+
     if plant:
         query = query.filter(models.ForumPost.title.ilike(f"%{plant}%"))
+
     if disease:
         query = query.filter(models.ForumPost.content.ilike(f"%{disease}%"))
-    return query.all()
+
+    posts = query.all()
+
+    for post in posts:
+        like_count = db.query(models.PostLike).filter(
+            models.PostLike.post_id == post.post_id
+        ).count()
+        post.like_count = like_count
+
+    return posts
+
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
