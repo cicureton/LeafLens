@@ -107,6 +107,10 @@ class ForumPostResponse(ForumPostBase):
     timestamp: datetime
     like_count: int = 0 
 
+    class Config:
+        orm_mode = True
+
+
 
 class ForumReplyBase(BaseModel):
     post_id: int
