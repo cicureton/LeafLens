@@ -98,10 +98,6 @@ class ForumPostBase(BaseModel):
     user_id: Optional[int] = None
     title: str
     content: str
-    like_count: int
-
-    class Config:
-        orm_mode = True
 
 class ForumPostCreate(ForumPostBase):
     pass
@@ -109,9 +105,8 @@ class ForumPostCreate(ForumPostBase):
 class ForumPostResponse(ForumPostBase):
     post_id: int
     timestamp: datetime
+    like_count: int = 0 
 
-    class Config:
-        orm_mode = True
 
 class ForumReplyBase(BaseModel):
     post_id: int
