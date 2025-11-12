@@ -29,8 +29,8 @@ export const styles = StyleSheet.create({
     padding: 15,
     backgroundColor: "rgba(0,0,0,0.5)",
     borderRadius: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     width: 60,
     height: 60,
   },
@@ -106,7 +106,7 @@ export const styles = StyleSheet.create({
     backgroundColor: "#2a2a2a",
     borderRadius: 10,
     overflow: "hidden",
-    maxWidth: (width / 2) - 15,
+    maxWidth: width / 2 - 15,
   },
   photoThumbnail: {
     width: "100%",
@@ -154,26 +154,175 @@ export const styles = StyleSheet.create({
     fontSize: 16,
   },
   // Add these to your existing styles
-photoCountBadge: {
-  position: 'absolute',
-  top: -5,
-  right: -5,
-  backgroundColor: '#e74c3c',
-  borderRadius: 10,
-  width: 20,
-  height: 20,
-  justifyContent: 'center',
+  photoCountBadge: {
+    position: "absolute",
+    top: -5,
+    right: -5,
+    backgroundColor: "#e74c3c",
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  photoCountText: {
+    color: "white",
+    fontSize: 12,
+    fontWeight: "bold",
+  },
+  viewPhotosText: {
+    color: "#3498db",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  disabledButton: {
+    opacity: 0.6,
+  },
+  photoActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+
+  // Results Section Styles
+  resultsSection: {
+    flex: 1,
+    backgroundColor: "white",
+    margin: 15,
+    marginTop: 0,
+    padding: 15,
+    borderRadius: 12,
+  },
+  resultsScrollView: {
+    flex: 1,
+  },
+  resultCard: {
+    backgroundColor: "#f8f9fa",
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 15,
+    borderLeftWidth: 4,
+    borderLeftColor: "#3f704d",
+  },
+  resultImage: {
+    width: "100%",
+    height: 150,
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  resultContent: {
+    flex: 1,
+  },
+  resultTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#333",
+    marginBottom: 10,
+  },
+  resultRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  resultLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#555",
+    marginLeft: 8,
+    marginRight: 8,
+    width: 80,
+  },
+  resultValue: {
+    fontSize: 14,
+    color: "#333",
+    flex: 1,
+    fontWeight: "500",
+  },
+  confidenceValue: {
+    fontSize: 14,
+    color: "#3498db",
+    fontWeight: "bold",
+  },
+  confidenceBarContainer: {
+    height: 6,
+    backgroundColor: "#ecf0f1",
+    borderRadius: 3,
+    marginTop: 5,
+    overflow: "hidden",
+  },
+  confidenceBar: {
+    height: "100%",
+    backgroundColor: "#3498db",
+    borderRadius: 3,
+  },
+  diseaseConfidenceBar: {
+  height: '100%',
+  backgroundColor: '#e67e22',
+  borderRadius: 3,
+},
+
+  // Section Header
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 15,
+  },
+
+  sectionTitle: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 15,
+  },
+
+  // Loading Overlay
+  loadingOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 1000,
+  },
+  loadingBox: {
+    backgroundColor: "white",
+    padding: 25,
+    borderRadius: 15,
+    alignItems: "center",
+    minWidth: 200,
+  },
+  loadingText: {
+    marginTop: 15,
+    fontSize: 16,
+    color: "#333",
+    fontWeight: "500",
+    textAlign: "center",
+  },
+
+  // Add to your styles
+errorCard: {
+  borderLeftColor: '#e74c3c',
+  backgroundColor: '#fdf2f2',
+},
+errorSection: {
   alignItems: 'center',
+  padding: 10,
 },
-photoCountText: {
-  color: 'white',
+errorText: {
+  color: '#e74c3c',
+  fontWeight: '600',
+  marginTop: 5,
+  textAlign: 'center',
+},
+errorDetail: {
+  color: '#e74c3c',
   fontSize: 12,
-  fontWeight: 'bold',
-},
-viewPhotosText: {
-  color: '#3498db',
-  fontSize: 16,
-  fontWeight: 'bold',
+  marginTop: 2,
+  textAlign: 'center',
 },
 });
 

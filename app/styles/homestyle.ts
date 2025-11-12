@@ -203,6 +203,107 @@ export const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 5,
   },
+  // Add these to your existing styles
+  statsContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
+  statCard: {
+    width: 110,
+    height: 110,
+    borderRadius: 16,
+    padding: 16,
+    marginRight: 12,
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "white",
+  },
+  statTitle: {
+    fontSize: 14,
+    color: "white",
+    fontWeight: "600",
+  },
+  emptySection: {
+    alignItems: "center",
+    padding: 40,
+    marginHorizontal: 20,
+    backgroundColor: "#f8f9fa",
+    borderRadius: 12,
+    marginBottom: 20,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#666",
+    marginTop: 12,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: "#999",
+    textAlign: "center",
+    marginTop: 4,
+  },
+  createPostButton: {
+    backgroundColor: "#3f704d",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginTop: 12,
+  },
+  createPostText: {
+    color: "white",
+    fontWeight: "600",
+    fontSize: 14,
+  },
+  signInPrompt: {
+    alignItems: "center",
+    padding: 40,
+    marginHorizontal: 20,
+    backgroundColor: "#f0f7f0",
+    borderRadius: 16,
+    marginBottom: 20,
+  },
+  signInTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#3f704d",
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  signInText: {
+    fontSize: 16,
+    color: "#666",
+    textAlign: "center",
+    marginBottom: 20,
+    lineHeight: 22,
+  },
+  signInButton: {
+    backgroundColor: "#3f704d",
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  signInButtonText: {
+    color: "white",
+    fontWeight: "600",
+    fontSize: 16,
+  },
+  // Loading States
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f5f5f5",
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: "#666",
+  },
 });
 
 export default styles;

@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useEffect, useState } from "react";
 import {
   Alert,
@@ -14,181 +14,307 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { diseasesAPI, PhotoStorage, plantsAPI } from "../../app/api";
 import { styles } from "../styles/plantstyle";
 
-const PlantsScreen = () => {
-  
-  const [plants, setPlants] = useState([
-  ]);
+// Key for storing plant photos in AsyncStorage
+const PLANT_PHOTOS_STORAGE_KEY = "@plant_user_photos";
 
-  // state for modals and selected plant
+const PlantsScreen = () => {
+  const [plants, setPlants] = useState([]);
+  const [diseases, setDiseases] = useState([]);
   const [selectedPlant, setSelectedPlant] = useState(null);
+  const [showAllDiseases, setShowAllDiseases] = useState(false);
+  const [selectedDisease, setSelectedDisease] = useState(null);
+  const [showDiseaseDetails, setShowDiseaseDetails] = useState(false);
   const [showAddPlantModal, setShowAddPlantModal] = useState(false);
   const [showPlantDetails, setShowPlantDetails] = useState(false);
-  const [showPhotoGallery, setShowPhotoGallery] = useState(false);
   const [showPhotoSelector, setShowPhotoSelector] = useState(false);
   const [activeFilter, setActiveFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [cameraPhotos, setCameraPhotos] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [userData, setUserData] = useState(null);
+  const [plantPhotos, setPlantPhotos] = useState({});
 
   // state for new plant form
   const [newPlant, setNewPlant] = useState({
     name: "",
-    type: "Indoor",
-    location: "",
-    careNotes: "",
+    common_name: "",
+    species: "",
   });
 
-  // Load camera photos when component mounts
+  // Load user data, plants, diseases, camera photos, and plant photos
   useEffect(() => {
+    loadUserData();
+    loadPlantsFromBackend();
+    loadDiseasesFromBackend();
     loadCameraPhotos();
+    loadPlantPhotos();
   }, []);
 
-  // Refresh function
+  // Load user data from AsyncStorage
+  const loadUserData = async () => {
+    try {
+      const storedUserData = await AsyncStorage.getItem("userData");
+      if (storedUserData) {
+        setUserData(JSON.parse(storedUserData));
+      }
+    } catch (error) {
+      console.error("Error loading user data:", error);
+    }
+  };
+
+  // Load plant photos from storage
+  const loadPlantPhotos = async () => {
+    try {
+      const storedPlantPhotos = await AsyncStorage.getItem(
+        PLANT_PHOTOS_STORAGE_KEY
+      );
+      if (storedPlantPhotos) {
+        setPlantPhotos(JSON.parse(storedPlantPhotos));
+        console.log(
+          "📸 Loaded plant photos:",
+          Object.keys(JSON.parse(storedPlantPhotos)).length
+        );
+      } else {
+        setPlantPhotos({});
+      }
+    } catch (error) {
+      console.error("Error loading plant photos:", error);
+      setPlantPhotos({});
+    }
+  };
+
+  // Save plant photos to storage
+  const savePlantPhotos = async (photos) => {
+    try {
+      await AsyncStorage.setItem(
+        PLANT_PHOTOS_STORAGE_KEY,
+        JSON.stringify(photos)
+      );
+      setPlantPhotos(photos);
+      console.log("💾 Saved plant photos:", Object.keys(photos).length);
+    } catch (error) {
+      console.error("Error saving plant photos:", error);
+    }
+  };
+
+  // Load plants from backend
+  const loadPlantsFromBackend = async () => {
+    try {
+      const backendPlants = await plantsAPI.getPlants();
+
+      // Transform backend data to app format
+      const transformedPlants = backendPlants.map((plant: any) => ({
+        id: plant.plant_id.toString(),
+        name: plant.name,
+        common_name: plant.common_name,
+        species: plant.species,
+        image: require("../../assets/images/imagenotfound.jpg"),
+        backendId: plant.plant_id,
+      }));
+
+      setPlants(transformedPlants);
+      console.log("🌿 Loaded plants from backend:", transformedPlants.length);
+    } catch (error) {
+      console.error("Error loading plants from backend:", error);
+      setPlants([]);
+    }
+  };
+
+  // Load diseases from backend
+  const loadDiseasesFromBackend = async () => {
+    try {
+      const backendDiseases = await diseasesAPI.getDiseases();
+
+      const transformedDiseases = backendDiseases.map((disease: any) => ({
+        id: disease.disease_id.toString(),
+        name: disease.name,
+        symptoms: disease.symptoms,
+        treatments: disease.treatments,
+        prevention: disease.prevention,
+        backendId: disease.disease_id,
+      }));
+
+      setDiseases(transformedDiseases);
+      console.log(
+        "🦠 Loaded diseases from backend:",
+        transformedDiseases.length
+      );
+    } catch (error) {
+      console.error("Error loading diseases from backend:", error);
+      setDiseases([]);
+    }
+  };
+
+  // Load camera photos
+  const loadCameraPhotos = async () => {
+    try {
+      const savedPhotos = await PhotoStorage.loadPhotos();
+      setCameraPhotos(savedPhotos);
+      console.log("📱 Loaded camera photos:", savedPhotos.length);
+    } catch (error) {
+      console.error("Error loading camera photos:", error);
+      setCameraPhotos([]);
+    }
+  };
+
+  // Refresh function - preserve plant photos
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadCameraPhotos();
-    
-    // Simulate API call delay
+    console.log("🔄 Refreshing plants and diseases data...");
+
+    // Save current plant photos before refresh
+    const currentPhotos = { ...plantPhotos };
+
+    await Promise.all([
+      loadPlantsFromBackend(),
+      loadDiseasesFromBackend(),
+      loadCameraPhotos(),
+    ]);
+
+    // Restore plant photos after refresh
+    setPlantPhotos(currentPhotos);
+    await savePlantPhotos(currentPhotos);
+
     setTimeout(() => {
       setRefreshing(false);
+      console.log("✅ Refresh complete");
     }, 1000);
   };
 
-  // Load photos from camera storage
-  const loadCameraPhotos = async () => {
-    try {
-      const savedPhotos = await AsyncStorage.getItem('@plant_photos');
-      if (savedPhotos) {
-        setCameraPhotos(JSON.parse(savedPhotos));
-      } else {
-        setCameraPhotos([]);
-      }
-    } catch (error) {
-      console.error('Error loading camera photos:', error);
-    }
+  // Get photos for a specific plant
+  const getPlantPhotos = (plantId) => {
+    return plantPhotos[plantId] || [];
   };
 
-  // predefined filter categories
-  const categories = [
-    { id: "all", name: "All Plants", color: "#3f704d" },
-    { id: "indoor", name: "Indoor", color: "#3f704d" },
-    { id: "outdoor", name: "Outdoor", color: "#3f704d" },
-    { id: "needs-care", name: "Needs Care", color: "#3f704d" },
-  ];
-
-  // filters plants based on search query and active filter
-  const filteredPlants = plants.filter((plant) => {
-    const matchesSearch =
-      plant.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      plant.location.toLowerCase().includes(searchQuery.toLowerCase());
-
-    const matchesFilter =
-      activeFilter === "all" ||
-      (activeFilter === "indoor" && plant.type === "Indoor") ||
-      (activeFilter === "outdoor" && plant.type === "Outdoor") ||
-      (activeFilter === "needs-care" && plant.health === "Needs Care");
-
-    return matchesSearch && matchesFilter;
-  });
+  // Get selected photo for a plant
+  const getPlantSelectedPhoto = (plantId) => {
+    const photos = getPlantPhotos(plantId);
+    return (
+      photos.find((photo) => photo.isSelected) ||
+      (photos.length > 0 ? photos[0] : null)
+    );
+  };
 
   // Get the display image for a plant
   const getPlantDisplayImage = (plant) => {
-    if (plant.selectedPhoto) {
-      const selected = plant.userPhotos.find(photo => photo.id === plant.selectedPhoto);
-      if (selected) return { uri: selected.uri };
+    const selectedPhoto = getPlantSelectedPhoto(plant.id);
+    if (selectedPhoto) {
+      return { uri: selectedPhoto.uri };
     }
-    if (plant.userPhotos.length > 0) {
-      return { uri: plant.userPhotos[0].uri };
+    const photos = getPlantPhotos(plant.id);
+    if (photos.length > 0) {
+      return { uri: photos[0].uri };
     }
     return plant.image;
   };
 
   // Add photo to a specific plant
-  const addPhotoToPlant = (plantId, photoUri) => {
+  const addPhotoToPlant = async (plantId, photoUri) => {
     const newPhoto = {
       id: Date.now().toString(),
       uri: photoUri,
       timestamp: new Date().toLocaleString(),
+      isSelected: false,
     };
 
-    setPlants(plants.map(plant => 
-      plant.id === plantId 
-        ? {
-            ...plant,
-            userPhotos: [...plant.userPhotos, newPhoto],
-            // Auto-select first photo if none selected
-            selectedPhoto: plant.selectedPhoto || newPhoto.id
-          }
-        : plant
-    ));
+    const currentPhotos = getPlantPhotos(plantId);
+    const updatedPhotos = [...currentPhotos, newPhoto];
+
+    // If this is the first photo, set it as selected
+    if (currentPhotos.length === 0) {
+      newPhoto.isSelected = true;
+    }
+
+    const updatedPlantPhotos = {
+      ...plantPhotos,
+      [plantId]: updatedPhotos,
+    };
+
+    await savePlantPhotos(updatedPlantPhotos);
+    console.log("📸 Added photo to plant:", plantId);
   };
 
   // Remove photo from plant
-  const removePhotoFromPlant = (plantId, photoId) => {
-    setPlants(plants.map(plant => {
-      if (plant.id === plantId) {
-        const updatedPhotos = plant.userPhotos.filter(photo => photo.id !== photoId);
-        let newSelectedPhoto = plant.selectedPhoto;
-        
-        // If we're removing the selected photo, select another one or clear selection
-        if (photoId === plant.selectedPhoto) {
-          newSelectedPhoto = updatedPhotos.length > 0 ? updatedPhotos[0].id : null;
-        }
+  const removePhotoFromPlant = async (plantId, photoId) => {
+    const currentPhotos = getPlantPhotos(plantId);
+    const updatedPhotos = currentPhotos.filter((photo) => photo.id !== photoId);
 
-        return {
-          ...plant,
-          userPhotos: updatedPhotos,
-          selectedPhoto: newSelectedPhoto
-        };
+    // If we're removing the selected photo, select another one
+    let needsReselection = false;
+    const updatedPhotosWithSelection = updatedPhotos.map((photo) => {
+      if (photo.id === photoId && photo.isSelected) {
+        needsReselection = true;
+        return { ...photo, isSelected: false };
       }
-      return plant;
-    }));
+      return photo;
+    });
+
+    // Select the first photo if we removed the selected one and there are photos left
+    if (needsReselection && updatedPhotosWithSelection.length > 0) {
+      updatedPhotosWithSelection[0].isSelected = true;
+    }
+
+    const updatedPlantPhotos = {
+      ...plantPhotos,
+      [plantId]: updatedPhotosWithSelection,
+    };
+
+    await savePlantPhotos(updatedPlantPhotos);
+    console.log("🗑️ Removed photo from plant:", plantId);
   };
 
   // Set selected photo for a plant
-  const setPlantSelectedPhoto = (plantId, photoId) => {
-    setPlants(plants.map(plant =>
-      plant.id === plantId
-        ? { ...plant, selectedPhoto: photoId }
-        : plant
-    ));
+  const setPlantSelectedPhoto = async (plantId, photoId) => {
+    const currentPhotos = getPlantPhotos(plantId);
+    const updatedPhotos = currentPhotos.map((photo) => ({
+      ...photo,
+      isSelected: photo.id === photoId,
+    }));
+
+    const updatedPlantPhotos = {
+      ...plantPhotos,
+      [plantId]: updatedPhotos,
+    };
+
+    await savePlantPhotos(updatedPlantPhotos);
     setShowPhotoSelector(false);
     Alert.alert("Success", "Main photo updated!");
+    console.log("⭐ Set selected photo for plant:", plantId);
   };
 
   // Assign specific camera photos to a plant
-  const assignPhotosToPlant = (plantId, selectedPhotos = null) => {
-    if (cameraPhotos.length === 0) {
-      Alert.alert("No Photos", "Take some photos in the camera first!");
-      return;
-    }
-
-    // If specific photos are selected, use those
+  const assignPhotosToPlant = async (plantId, selectedPhotos = null) => {
     const photosToAdd = selectedPhotos || cameraPhotos;
 
     if (photosToAdd.length === 0) {
-      Alert.alert("No Photos Selected", "Please select at least one photo to add.");
+      Alert.alert(
+        "No Photos Selected",
+        "Please select at least one photo to add."
+      );
       return;
     }
 
-    photosToAdd.forEach(photo => {
-      addPhotoToPlant(plantId, photo.uri);
-    });
+    // Add each photo to the plant
+    for (const photo of photosToAdd) {
+      await addPhotoToPlant(plantId, photo.uri);
+    }
 
     // Remove added photos from camera photos
     if (!selectedPhotos) {
-      // If no specific selection, clear all camera photos
-      AsyncStorage.removeItem('@plant_photos');
+      // Clear all camera photos
+      await PhotoStorage.clearPhotos();
       setCameraPhotos([]);
     } else {
       // Remove only the selected photos
       const remainingPhotos = cameraPhotos.filter(
-        cameraPhoto => !selectedPhotos.some(selected => selected.id === cameraPhoto.id)
+        (cameraPhoto) =>
+          !selectedPhotos.some((selected) => selected.id === cameraPhoto.id)
       );
+      await PhotoStorage.savePhotos(remainingPhotos);
       setCameraPhotos(remainingPhotos);
-      AsyncStorage.setItem('@plant_photos', JSON.stringify(remainingPhotos));
     }
 
     Alert.alert("Success", `${photosToAdd.length} photo(s) added to plant!`);
@@ -201,143 +327,200 @@ const PlantsScreen = () => {
       return;
     }
 
-    setSelectedPlant(plants.find(p => p.id === plantId));
+    setSelectedPlant(plants.find((p) => p.id === plantId));
     setShowPhotoSelector(true);
   };
 
-  // handles adding a new plant to the collection
-  const handleAddPlant = () => {
+  // Handle adding a new plant
+  const handleAddPlant = async () => {
     if (!newPlant.name.trim()) {
       Alert.alert("Error", "Please enter a plant name");
       return;
     }
 
-    const plant = {
-      id: Date.now().toString(),
-      name: newPlant.name,
-      type: newPlant.type,
-      location: newPlant.location || "Unknown",
-      health: "Good",
-      lastWatered: "Just now",
-      nextWatering: "In 7 days",
-      image: require("../../assets/images/imagenotfound.jpg"),
-      careNotes: newPlant.careNotes || "No notes yet.",
-      userPhotos: [],
-      selectedPhoto: null,
-    };
+    try {
+      // Create plant in backend
+      const backendPlant = await plantsAPI.createPlant({
+        name: newPlant.name,
+        common_name: newPlant.common_name || newPlant.name,
+        species: newPlant.species || "",
+      });
 
-    setPlants([plant, ...plants]);
-    setNewPlant({ name: "", type: "Indoor", location: "", careNotes: "" });
-    setShowAddPlantModal(false);
-    Alert.alert("Success", `${plant.name} added to your collection!`);
-  };
+      const plant = {
+        id: backendPlant.plant_id.toString(),
+        name: newPlant.name,
+        common_name: newPlant.common_name || newPlant.name,
+        species: newPlant.species || "",
+        image: require("../../assets/images/imagenotfound.jpg"),
+        backendId: backendPlant.plant_id,
+      };
 
-  // handles watering a plant data
-  const handleWaterPlant = (plantId) => {
-    setPlants(
-      plants.map((plant) =>
-        plant.id === plantId
-          ? {
-              ...plant,
-              lastWatered: "Just now",
-              nextWatering: "In 7 days",
-              health: plant.health === "Needs Care" ? "Good" : plant.health,
-            }
-          : plant
-      )
-    );
-    Alert.alert("Watered!", "Plant watering recorded");
-  };
-
-  // determines color based on plant health status
-  const getHealthColor = (health) => {
-    switch (health) {
-      case "Excellent":
-        return "#27ae60";
-      case "Good":
-        return "#2ecc71";
-      case "Needs Care":
-        return "#e74c3c";
-      default:
-        return "#95a5a6";
+      setPlants([plant, ...plants]);
+      setNewPlant({ name: "", common_name: "", species: "" });
+      setShowAddPlantModal(false);
+      Alert.alert("Success", `${plant.name} added to your collection!`);
+    } catch (error) {
+      console.error("Error adding plant:", error);
+      Alert.alert("Error", "Failed to add plant. Please try again.");
     }
   };
 
-  // renders each plant card in the grid
-  const renderPlantCard = ({ item }) => (
-    <TouchableOpacity
-      style={styles.plantCard}
-      onPress={() => {
-        setSelectedPlant(item);
-        setShowPlantDetails(true);
-      }}
-    >
-      <Image source={getPlantDisplayImage(item)} style={styles.plantImage} />
-      
-      {/* Photo selection indicator */}
-      {item.userPhotos.length > 0 && item.selectedPhoto && (
-        <View style={styles.photoSelectedIndicator}>
-          <Ionicons name="star" size={12} color="white" />
-        </View>
-      )}
+  // Delete plant
+  const handleDeletePlant = async (plantId: string) => {
+    Alert.alert(
+      "Delete Plant",
+      "Are you sure you want to delete this plant and all its photos?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            const plantToDelete = plants.find((p) => p.id === plantId);
 
-      <View style={styles.plantInfo}>
-        <View style={styles.plantHeader}>
-          <Text style={styles.plantName}>{item.name}</Text>
-          <View
-            style={[
-              styles.healthIndicator,
-              { backgroundColor: getHealthColor(item.health) },
-            ]}
-          >
-            <Text style={styles.healthText}>{item.health}</Text>
+            // Delete from backend if it has a backend ID
+            if (plantToDelete?.backendId) {
+              try {
+                await plantsAPI.deletePlant(plantToDelete.backendId.toString());
+              } catch (error) {
+                console.error("Error deleting plant from backend:", error);
+              }
+            }
+
+            // Remove plant photos from storage
+            const updatedPlantPhotos = { ...plantPhotos };
+            delete updatedPlantPhotos[plantId];
+            await savePlantPhotos(updatedPlantPhotos);
+
+            setPlants(plants.filter((plant) => plant.id !== plantId));
+            setShowPlantDetails(false);
+            Alert.alert(
+              "Deleted",
+              "Plant has been removed from your collection"
+            );
+          },
+        },
+      ]
+    );
+  };
+
+  // Show disease details
+  const handleShowDisease = (disease) => {
+    setSelectedDisease(disease);
+    setShowDiseaseDetails(true);
+  };
+
+  // Filter categories
+  const categories = [
+    { id: "all", name: "All Plants", color: "#3f704d" },
+    { id: "with-photos", name: "With Photos", color: "#3f704d" },
+  ];
+
+  // Filter plants based on search query and active filter
+  const filteredPlants = plants.filter((plant) => {
+    const matchesSearch =
+      plant.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      plant.common_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      plant.species?.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesFilter =
+      activeFilter === "all" ||
+      (activeFilter === "with-photos" && getPlantPhotos(plant.id).length > 0);
+
+    return matchesSearch && matchesFilter;
+  });
+
+  // Render each plant card in the grid
+  const renderPlantCard = ({ item }) => {
+    const plantPhotos = getPlantPhotos(item.id);
+    const selectedPhoto = getPlantSelectedPhoto(item.id);
+
+    return (
+      <TouchableOpacity
+        style={styles.plantCard}
+        onPress={() => {
+          setSelectedPlant(item);
+          setShowPlantDetails(true);
+        }}
+      >
+        <Image source={getPlantDisplayImage(item)} style={styles.plantImage} />
+
+        {/* Photo selection indicator */}
+        {selectedPhoto && (
+          <View style={styles.photoSelectedIndicator}>
+            <Ionicons name="star" size={12} color="white" />
           </View>
-        </View>
+        )}
 
-        <View style={styles.plantDetails}>
-          <View style={styles.detailRow}>
-            <Ionicons name="home-outline" size={16} color="#666" />
-            <Text style={styles.detailText}>{item.location}</Text>
+        <View style={styles.plantInfo}>
+          <View style={styles.plantHeader}>
+            <Text style={styles.plantName}>{item.name}</Text>
+            {plantPhotos.length > 0 && (
+              <View style={styles.photoCountBadge}>
+                <Ionicons name="images" size={12} color="white" />
+                <Text style={styles.photoCountText}>{plantPhotos.length}</Text>
+              </View>
+            )}
           </View>
 
-          <View style={styles.detailRow}>
-            <Ionicons name="water-outline" size={16} color="#666" />
-            <Text style={styles.detailText}>Water: {item.nextWatering}</Text>
-          </View>
-
-          {/* Photo count indicator */}
-          {item.userPhotos.length > 0 && (
-            <View style={styles.detailRow}>
-              <Ionicons name="images-outline" size={16} color="#666" />
-              <Text style={styles.detailText}>{item.userPhotos.length} photo(s)</Text>
-            </View>
+          {item.common_name && item.common_name !== item.name && (
+            <Text style={styles.commonName}>{item.common_name}</Text>
           )}
-        </View>
 
-        <View style={styles.plantActions}>
-          <TouchableOpacity
-            style={styles.waterButton}
-            onPress={() => handleWaterPlant(item.id)}
-          >
-            <Ionicons name="water" size={16} color="#3498db" />
-            <Text style={styles.waterButtonText}>Water</Text>
-          </TouchableOpacity>
+          {item.species && (
+            <Text style={styles.speciesText}>{item.species}</Text>
+          )}
 
-          <TouchableOpacity
-            style={styles.photoButton}
-            onPress={() => selectPhotosForPlant(item.id)}
-          >
-            <Ionicons name="camera" size={16} color="#27ae60" />
-            <Text style={styles.photoButtonText}>Add Photos</Text>
-          </TouchableOpacity>
+          <View style={styles.plantDetails}>
+            <View style={styles.detailRow}>
+              <Ionicons name="images-outline" size={14} color="#666" />
+              <Text style={styles.detailText}>
+                {plantPhotos.length} photo{plantPhotos.length !== 1 ? "s" : ""}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.plantActions}>
+            <TouchableOpacity
+              style={styles.photoButton}
+              onPress={() => selectPhotosForPlant(item.id)}
+            >
+              <Ionicons name="camera" size={16} color="#27ae60" />
+              <Text style={styles.photoButtonText}>
+                {plantPhotos.length > 0 ? "Add More" : "Add Photos"}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
+      </TouchableOpacity>
+    );
+  };
+
+  // Render disease card
+  const renderDiseaseCard = ({ item }) => (
+    <TouchableOpacity
+      style={styles.diseaseCard}
+      onPress={() => handleShowDisease(item)}
+    >
+      <View style={styles.diseaseHeader}>
+        <Text style={styles.diseaseName}>{item.name}</Text>
+        <Ionicons name="medical" size={20} color="#e74c3c" />
       </View>
+      <Text style={styles.diseaseSymptoms} numberOfLines={2}>
+        {item.symptoms}
+      </Text>
+      <TouchableOpacity
+        style={styles.learnMoreButton}
+        onPress={() => handleShowDisease(item)}
+      >
+        <Text style={styles.learnMoreText}>Learn More</Text>
+      </TouchableOpacity>
     </TouchableOpacity>
   );
 
   // Render user photo in gallery
   const renderUserPhoto = ({ item }) => (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={styles.photoItem}
       onPress={() => setPlantSelectedPhoto(selectedPlant.id, item.id)}
     >
@@ -345,13 +528,13 @@ const PlantsScreen = () => {
       <View style={styles.photoInfo}>
         <Text style={styles.photoTimestamp}>{item.timestamp}</Text>
         <View style={styles.photoActions}>
-          {selectedPlant.selectedPhoto === item.id && (
+          {item.isSelected && (
             <View style={styles.selectedBadge}>
               <Ionicons name="star" size={12} color="white" />
               <Text style={styles.selectedText}>Main</Text>
             </View>
           )}
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.deletePhotoButton}
             onPress={() => removePhotoFromPlant(selectedPlant.id, item.id)}
           >
@@ -364,10 +547,10 @@ const PlantsScreen = () => {
 
   // Render camera photo for selection
   const renderCameraPhoto = ({ item }) => (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={[
         styles.cameraPhotoItem,
-        item.selected && styles.cameraPhotoSelected
+        item.selected && styles.cameraPhotoSelected,
       ]}
       onPress={() => togglePhotoSelection(item.id)}
     >
@@ -383,19 +566,18 @@ const PlantsScreen = () => {
 
   // Toggle photo selection in photo selector
   const togglePhotoSelection = (photoId) => {
-    setCameraPhotos(cameraPhotos.map(photo =>
-      photo.id === photoId
-        ? { ...photo, selected: !photo.selected }
-        : photo
-    ));
+    setCameraPhotos(
+      cameraPhotos.map((photo) =>
+        photo.id === photoId ? { ...photo, selected: !photo.selected } : photo
+      )
+    );
   };
 
   // Get selected camera photos
   const getSelectedCameraPhotos = () => {
-    return cameraPhotos.filter(photo => photo.selected);
+    return cameraPhotos.filter((photo) => photo.selected);
   };
 
-  // main component render
   return (
     <SafeAreaView style={styles.container} edges={["right", "left"]}>
       {/* Header */}
@@ -403,20 +585,13 @@ const PlantsScreen = () => {
         <View>
           <Text style={styles.headerTitle}>My Plants</Text>
           <Text style={styles.headerSubtitle}>
-            {plants.length} plants in your collection
-            {cameraPhotos.length > 0 && ` • ${cameraPhotos.length} new photo(s) from camera`}
+            {plants.length} plants • {diseases.length} diseases
+            {cameraPhotos.length > 0 &&
+              ` • ${cameraPhotos.length} new photo(s)`}
           </Text>
         </View>
-        <TouchableOpacity 
-          style={styles.refreshButton}
-          onPress={onRefresh}
-        >
-          <Ionicons 
-            name="refresh" 
-            size={24} 
-            color="white" 
-            style={{ transform: [{ rotate: refreshing ? '180deg' : '0deg' }] }}
-          />
+        <TouchableOpacity style={styles.refreshButton} onPress={onRefresh}>
+          <Ionicons name="refresh" size={24} color="white" />
         </TouchableOpacity>
       </View>
 
@@ -425,7 +600,7 @@ const PlantsScreen = () => {
         <Ionicons name="search" size={20} color="#666" />
         <TextInput
           style={styles.searchInput}
-          placeholder="Search your plants"
+          placeholder="Search plants or diseases..."
           value={searchQuery}
           onChangeText={setSearchQuery}
           placeholderTextColor="#999"
@@ -468,7 +643,39 @@ const PlantsScreen = () => {
         </ScrollView>
       </View>
 
+      {/* Common Diseases Section */}
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Common Plant Diseases</Text>
+        <TouchableOpacity onPress={() => setShowAllDiseases(true)}>
+          <Text style={styles.seeAllText}>View All</Text>
+        </TouchableOpacity>
+      </View>
+
+      {diseases.length > 0 ? (
+        <FlatList
+          data={diseases.slice(0, 3)}
+          renderItem={renderDiseaseCard}
+          keyExtractor={(item) => item.id}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.diseasesList}
+        />
+      ) : (
+        <View style={styles.emptySection}>
+          <Ionicons name="medical-outline" size={48} color="#ccc" />
+          <Text style={styles.emptyText}>No disease data</Text>
+          <Text style={styles.emptySubtext}>
+            Disease information will appear here
+          </Text>
+        </View>
+      )}
+
       {/* Plants Grid */}
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Your Plant Collection</Text>
+        <Text style={styles.seeAllText}>{filteredPlants.length} plants</Text>
+      </View>
+
       {filteredPlants.length > 0 ? (
         <FlatList
           data={filteredPlants}
@@ -489,7 +696,9 @@ const PlantsScreen = () => {
       ) : (
         <View style={styles.emptyState}>
           <Ionicons name="leaf-outline" size={64} color="#ccc" />
-          <Text style={styles.emptyStateText}>No plants found</Text>
+          <Text style={styles.emptyStateText}>
+            {searchQuery ? "No plants found" : "No plants yet"}
+          </Text>
           <Text style={styles.emptyStateSubtext}>
             {searchQuery
               ? "Try a different search"
@@ -529,49 +738,24 @@ const PlantsScreen = () => {
               onChangeText={(text) => setNewPlant({ ...newPlant, name: text })}
             />
 
-            <Text style={styles.inputLabel}>Plant Type</Text>
-            <View style={styles.typeOptions}>
-              <TouchableOpacity
-                style={[
-                  styles.typeOption,
-                  newPlant.type === "Indoor" && styles.typeOptionActive,
-                ]}
-                onPress={() => setNewPlant({ ...newPlant, type: "Indoor" })}
-              >
-                <Text style={styles.typeOptionText}>Indoor</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.typeOption,
-                  newPlant.type === "Outdoor" && styles.typeOptionActive,
-                ]}
-                onPress={() => setNewPlant({ ...newPlant, type: "Outdoor" })}
-              >
-                <Text style={styles.typeOptionText}>Outdoor</Text>
-              </TouchableOpacity>
-            </View>
-
-            <Text style={styles.inputLabel}>Location</Text>
+            <Text style={styles.inputLabel}>Common Name (Optional)</Text>
             <TextInput
               style={styles.textInput}
-              placeholder="e.g., Living Room, Garden"
-              value={newPlant.location}
+              placeholder="e.g., Swiss Cheese Plant"
+              value={newPlant.common_name}
               onChangeText={(text) =>
-                setNewPlant({ ...newPlant, location: text })
+                setNewPlant({ ...newPlant, common_name: text })
               }
             />
 
-            <Text style={styles.inputLabel}>Care Notes</Text>
+            <Text style={styles.inputLabel}>Species (Optional)</Text>
             <TextInput
-              style={[styles.textInput, styles.textArea]}
-              placeholder="Any special care instructions..."
-              value={newPlant.careNotes}
+              style={styles.textInput}
+              placeholder="e.g., Monstera deliciosa"
+              value={newPlant.species}
               onChangeText={(text) =>
-                setNewPlant({ ...newPlant, careNotes: text })
+                setNewPlant({ ...newPlant, species: text })
               }
-              multiline
-              numberOfLines={4}
-              textAlignVertical="top"
             />
           </ScrollView>
 
@@ -613,41 +797,40 @@ const PlantsScreen = () => {
 
             <ScrollView style={styles.detailsContent}>
               {/* Plant main image */}
-              <TouchableOpacity 
-                onPress={() => selectedPlant.userPhotos.length > 0 && setShowPhotoGallery(true)}
-              >
-                <Image source={getPlantDisplayImage(selectedPlant)} style={styles.detailImage} />
-                {selectedPlant.userPhotos.length > 0 && (
-                  <View style={styles.imageOverlay}>
-                    <Text style={styles.imageOverlayText}>Tap to view gallery</Text>
-                  </View>
-                )}
+              <TouchableOpacity>
+                <Image
+                  source={getPlantDisplayImage(selectedPlant)}
+                  style={styles.detailImage}
+                />
               </TouchableOpacity>
 
               <View style={styles.detailSection}>
                 <Text style={styles.detailName}>{selectedPlant.name}</Text>
-                <View
-                  style={[
-                    styles.healthIndicator,
-                    { backgroundColor: getHealthColor(selectedPlant.health) },
-                  ]}
-                >
-                  <Text style={styles.healthText}>{selectedPlant.health}</Text>
-                </View>
+                {selectedPlant.common_name &&
+                  selectedPlant.common_name !== selectedPlant.name && (
+                    <Text style={styles.commonNameLarge}>
+                      {selectedPlant.common_name}
+                    </Text>
+                  )}
+                {selectedPlant.species && (
+                  <Text style={styles.speciesText}>
+                    {selectedPlant.species}
+                  </Text>
+                )}
               </View>
 
               {/* Photo Gallery Section */}
-              {selectedPlant.userPhotos.length > 0 && (
+              {getPlantPhotos(selectedPlant.id).length > 0 && (
                 <View style={styles.photoGallerySection}>
                   <View style={styles.sectionHeader}>
                     <Text style={styles.sectionTitle}>Plant Photos</Text>
                     <Text style={styles.photoCount}>
-                      {selectedPlant.userPhotos.length} photos
+                      {getPlantPhotos(selectedPlant.id).length} photos
                     </Text>
                   </View>
                   <FlatList
                     horizontal
-                    data={selectedPlant.userPhotos}
+                    data={getPlantPhotos(selectedPlant.id)}
                     renderItem={renderUserPhoto}
                     keyExtractor={(item) => item.id}
                     showsHorizontalScrollIndicator={false}
@@ -659,58 +842,156 @@ const PlantsScreen = () => {
                 </View>
               )}
 
-              <View style={styles.detailGrid}>
-                <View style={styles.detailItem}>
-                  <Ionicons name="home-outline" size={20} color="#666" />
-                  <Text style={styles.detailLabel}>Location</Text>
-                  <Text style={styles.detailValue}>
-                    {selectedPlant.location}
-                  </Text>
-                </View>
-
-                <View style={styles.detailItem}>
-                  <Ionicons name="leaf-outline" size={20} color="#666" />
-                  <Text style={styles.detailLabel}>Type</Text>
-                  <Text style={styles.detailValue}>{selectedPlant.type}</Text>
-                </View>
-
-                <View style={styles.detailItem}>
-                  <Ionicons name="water-outline" size={20} color="#666" />
-                  <Text style={styles.detailLabel}>Last Watered</Text>
-                  <Text style={styles.detailValue}>
-                    {selectedPlant.lastWatered}
-                  </Text>
-                </View>
-
-                <View style={styles.detailItem}>
-                  <Ionicons name="calendar-outline" size={20} color="#666" />
-                  <Text style={styles.detailLabel}>Next Watering</Text>
-                  <Text style={styles.detailValue}>
-                    {selectedPlant.nextWatering}
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.careNotesSection}>
-                <Text style={styles.sectionTitle}>Care Notes</Text>
-                <Text style={styles.careNotes}>{selectedPlant.careNotes}</Text>
-              </View>
-
               <View style={styles.detailActions}>
                 <TouchableOpacity
-                  style={styles.waterButtonLarge}
-                  onPress={() => {
-                    handleWaterPlant(selectedPlant.id);
-                    setShowPlantDetails(false);
-                  }}
+                  style={styles.deleteButtonLarge}
+                  onPress={() => handleDeletePlant(selectedPlant.id)}
                 >
-                  <Ionicons name="water" size={20} color="white" />
-                  <Text style={styles.waterButtonLargeText}>
-                    Water This Plant
-                  </Text>
+                  <Ionicons name="trash-outline" size={20} color="white" />
+                  <Text style={styles.deleteButtonLargeText}>Delete Plant</Text>
                 </TouchableOpacity>
-
               </View>
+            </ScrollView>
+          </SafeAreaView>
+        )}
+      </Modal>
+
+      {/* All Diseases List Modal */}
+      <Modal
+        visible={showAllDiseases}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowAllDiseases(false)}
+      >
+        <SafeAreaView style={styles.modalContainer}>
+          {/* Header */}
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>
+              All Plant Diseases ({diseases.length})
+            </Text>
+            <TouchableOpacity
+              onPress={() => setShowAllDiseases(false)}
+              style={styles.closeButton}
+            >
+              <Ionicons name="close" size={24} color="#333" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Diseases List */}
+          <FlatList
+            data={diseases}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.diseasesListContainer}
+            showsVerticalScrollIndicator={false}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={styles.diseaseListItem}
+                onPress={() => {
+                  setSelectedDisease(item);
+                  setShowDiseaseDetails(true);
+                  setShowAllDiseases(false);
+                }}
+              >
+                <View style={styles.diseaseListItemContent}>
+                  <View style={styles.diseaseListItemInfo}>
+                    <Text style={styles.diseaseListItemName}>{item.name}</Text>
+                    <Text
+                      style={styles.diseaseListItemSymptoms}
+                      numberOfLines={2}
+                    >
+                      {item.symptoms || "No symptoms description available"}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color="#ccc" />
+                </View>
+              </TouchableOpacity>
+            )}
+            ListEmptyComponent={
+              <View style={styles.emptyState}>
+                <Ionicons name="medical-outline" size={64} color="#ccc" />
+                <Text style={styles.emptyStateText}>No diseases found</Text>
+                <Text style={styles.emptyStateSubtext}>
+                  Disease information will appear here when available
+                </Text>
+              </View>
+            }
+          />
+        </SafeAreaView>
+      </Modal>
+
+      {/* Single Disease Detail Modal */}
+      <Modal
+        visible={showDiseaseDetails}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowDiseaseDetails(false)}
+      >
+        {selectedDisease && (
+          <SafeAreaView style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowDiseaseDetails(false);
+                  setShowAllDiseases(true);
+                }}
+                style={styles.backButton}
+              >
+                <Ionicons name="arrow-back" size={24} color="#333" />
+              </TouchableOpacity>
+              <Text style={styles.modalTitle}>Disease Details</Text>
+              <TouchableOpacity
+                onPress={() => setShowDiseaseDetails(false)}
+                style={styles.closeButton}
+              >
+                <Ionicons name="close" size={24} color="#333" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.diseaseDetailContent}>
+              <View style={styles.diseaseDetailHeader}>
+                <Text style={styles.diseaseDetailName}>
+                  {selectedDisease.name}
+                </Text>
+              </View>
+
+              {/* Symptoms Section */}
+              <View style={styles.diseaseInfoSection}>
+                <Text style={styles.diseaseSectionTitle}>Symptoms</Text>
+                <Text style={styles.diseaseSectionText}>
+                  {selectedDisease.symptoms ||
+                    "No symptoms information available."}
+                </Text>
+              </View>
+
+              {/* Treatments Section */}
+              <View style={styles.diseaseInfoSection}>
+                <Text style={styles.diseaseSectionTitle}>Treatments</Text>
+                <Text style={styles.diseaseSectionText}>
+                  {selectedDisease.treatments ||
+                    "No treatment information available."}
+                </Text>
+              </View>
+
+              {/* Prevention Section */}
+              <View style={styles.diseaseInfoSection}>
+                <Text style={styles.diseaseSectionTitle}>Prevention</Text>
+                <Text style={styles.diseaseSectionText}>
+                  {selectedDisease.prevention ||
+                    "No prevention information available."}
+                </Text>
+              </View>
+
+              {/* Back to List Button */}
+              <TouchableOpacity
+                style={styles.backToListButton}
+                onPress={() => {
+                  setShowDiseaseDetails(false);
+                  setShowAllDiseases(true);
+                }}
+              >
+                <Ionicons name="list" size={20} color="#3f704d" />
+                <Text style={styles.backToListText}>Back to All Diseases</Text>
+              </TouchableOpacity>
             </ScrollView>
           </SafeAreaView>
         )}
@@ -734,25 +1015,32 @@ const PlantsScreen = () => {
             <Text style={styles.selectorSubtitle}>
               Choose photos to add to {selectedPlant?.name}
             </Text>
-            
+
             {cameraPhotos.length > 0 ? (
               <>
                 <View style={styles.selectionInfo}>
                   <Text style={styles.selectionCount}>
-                    {getSelectedCameraPhotos().length} of {cameraPhotos.length} selected
+                    {getSelectedCameraPhotos().length} of {cameraPhotos.length}{" "}
+                    selected
                   </Text>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.selectAllButton}
                     onPress={() => {
-                      const allSelected = getSelectedCameraPhotos().length === cameraPhotos.length;
-                      setCameraPhotos(cameraPhotos.map(photo => ({
-                        ...photo,
-                        selected: !allSelected
-                      })));
+                      const allSelected =
+                        getSelectedCameraPhotos().length ===
+                        cameraPhotos.length;
+                      setCameraPhotos(
+                        cameraPhotos.map((photo) => ({
+                          ...photo,
+                          selected: !allSelected,
+                        }))
+                      );
                     }}
                   >
                     <Text style={styles.selectAllText}>
-                      {getSelectedCameraPhotos().length === cameraPhotos.length ? 'Deselect All' : 'Select All'}
+                      {getSelectedCameraPhotos().length === cameraPhotos.length
+                        ? "Deselect All"
+                        : "Select All"}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -776,10 +1064,14 @@ const PlantsScreen = () => {
                   <TouchableOpacity
                     style={[
                       styles.addPhotosButton,
-                      getSelectedCameraPhotos().length === 0 && styles.addPhotosButtonDisabled,
+                      getSelectedCameraPhotos().length === 0 &&
+                        styles.addPhotosButtonDisabled,
                     ]}
                     onPress={() => {
-                      assignPhotosToPlant(selectedPlant.id, getSelectedCameraPhotos());
+                      assignPhotosToPlant(
+                        selectedPlant.id,
+                        getSelectedCameraPhotos()
+                      );
                       setShowPhotoSelector(false);
                     }}
                     disabled={getSelectedCameraPhotos().length === 0}

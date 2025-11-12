@@ -174,16 +174,20 @@ export const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   errorContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     gap: 10,
   },
-  
+  userType: {
+    fontSize: 14,
+    color: "#666",
+    fontStyle: "italic",
+  },  
 });
 
 export default styles;

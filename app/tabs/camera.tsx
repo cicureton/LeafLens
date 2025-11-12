@@ -1,68 +1,88 @@
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios";
 import { CameraType, CameraView, useCameraPermissions } from "expo-camera";
-import * as FileSystem from 'expo-file-system/legacy';
+import * as FileSystem from "expo-file-system/legacy";
 import { useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Button,
   FlatList,
   Image,
+  ScrollView,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
+import { PhotoStorage } from "../../app/api";
 import { styles } from "../styles/camerastyle";
 
 const CameraScreen = () => {
   const [facing, setFacing] = useState<CameraType>("back");
   const [permission, requestPermission] = useCameraPermissions();
-  const [photos, setPhotos] = useState([]); // Array to store multiple photos
-  const [isPreviewMode, setIsPreviewMode] = useState(false); // New state to control mode
+  const [photos, setPhotos] = useState([]);
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [userData, setUserData] = useState(null);
   const cameraRef = useRef(null);
+  const [loading, setLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState("");
+  const [showResults, setShowResults] = useState(false);
+  const [analysisResults, setAnalysisResults] = useState([]);
 
-  // Load saved photos on component mount
+  // Load user data and saved photos
   useEffect(() => {
+    loadUserData();
     loadSavedPhotos();
   }, []);
 
-  // Load photos from AsyncStorage
-  const loadSavedPhotos = async () => {
+  // Load user data from AsyncStorage
+  const loadUserData = async () => {
     try {
-      const savedPhotos = await AsyncStorage.getItem('@plant_photos');
-      if (savedPhotos) {
-        setPhotos(JSON.parse(savedPhotos));
+      const storedUserData = await AsyncStorage.getItem("userData");
+      if (storedUserData) {
+        setUserData(JSON.parse(storedUserData));
       }
     } catch (error) {
-      console.error('Error loading photos:', error);
+      console.error("Error loading user data:", error);
     }
   };
 
-  // Save photos to AsyncStorage
-  const savePhotosToStorage = async (photosArray) => {
+  // Load photos from storage using the centralized API
+  const loadSavedPhotos = async () => {
     try {
-      await AsyncStorage.setItem('@plant_photos', JSON.stringify(photosArray));
+      const savedPhotos = await PhotoStorage.loadPhotos();
+      setPhotos(savedPhotos);
     } catch (error) {
-      console.error('Error saving photos:', error);
+      console.error("Error loading photos:", error);
     }
   };
 
-  // Save photo to file system using legacy API
-  const savePhotoToFileSystem = async (tempUri) => {
+  // Save photos to storage using the centralized API
+  const savePhotosToStorage = async (photosArray: any[]) => {
+    try {
+      await PhotoStorage.savePhotos(photosArray);
+    } catch (error) {
+      console.error("Error saving photos:", error);
+    }
+  };
+
+  // Save photo to file system
+  const savePhotoToFileSystem = async (tempUri: string) => {
     try {
       const fileName = `plant_photo_${Date.now()}.jpg`;
       const permanentUri = `${FileSystem.documentDirectory}${fileName}`;
-      
-      // Using legacy copyAsync - this should work now
+
       await FileSystem.copyAsync({
         from: tempUri,
-        to: permanentUri
+        to: permanentUri,
       });
-      
+
       return permanentUri;
     } catch (error) {
-      console.error('Error saving photo:', error);
-      return tempUri; // Fallback to original URI
+      console.error("Error saving photo:", error);
+      return tempUri;
     }
   };
 
@@ -96,23 +116,30 @@ const CameraScreen = () => {
     if (cameraRef.current) {
       try {
         const photo = await cameraRef.current.takePictureAsync();
-        
+
         // Save to permanent storage
         const savedUri = await savePhotoToFileSystem(photo.uri);
-        
-        const newPhotos = [...photos, {
-          id: Date.now().toString(),
-          uri: savedUri, // Use permanent URI
-          timestamp: new Date().toLocaleTimeString(),
-          date: new Date().toISOString()
-        }];
-        
+
+        const newPhotos = [
+          ...photos,
+          {
+            id: Date.now().toString(),
+            uri: savedUri,
+            timestamp: new Date().toLocaleTimeString(),
+            date: new Date().toISOString(),
+            uploaded: false,
+          },
+        ];
+
         setPhotos(newPhotos);
         await savePhotosToStorage(newPhotos);
-        
-        Alert.alert("Success", "Photo added! You can take more photos or go to preview.");
+
+        Alert.alert(
+          "Success",
+          "Photo added! You can take more photos or go to preview."
+        );
       } catch (error) {
-        console.error('Error taking picture:', error);
+        console.error("Error taking picture:", error);
         Alert.alert("Error", "Failed to take picture");
       }
     }
@@ -125,33 +152,35 @@ const CameraScreen = () => {
       return;
     }
     setIsPreviewMode(true);
+    setShowResults(false); // Reset results when going to preview
   };
 
   // Return to camera mode
   const returnToCamera = () => {
     setIsPreviewMode(false);
+    setShowResults(false);
   };
 
   // remove a specific photo
   const removePhoto = async (photoId: string) => {
     try {
       // Find photo to remove from file system
-      const photoToRemove = photos.find(photo => photo.id === photoId);
+      const photoToRemove = photos.find((photo) => photo.id === photoId);
       if (photoToRemove) {
-        // Delete from file system using legacy API
         await FileSystem.deleteAsync(photoToRemove.uri, { idempotent: true });
       }
-      
-      const newPhotos = photos.filter(photo => photo.id !== photoId);
+
+      const newPhotos = photos.filter((photo) => photo.id !== photoId);
       setPhotos(newPhotos);
       await savePhotosToStorage(newPhotos);
-      
+
       // If no photos left, return to camera
       if (newPhotos.length === 0) {
         setIsPreviewMode(false);
+        setShowResults(false);
       }
     } catch (error) {
-      console.error('Error removing photo:', error);
+      console.error("Error removing photo:", error);
     }
   };
 
@@ -162,8 +191,8 @@ const CameraScreen = () => {
       "Are you sure you want to delete all photos?",
       [
         { text: "Cancel", style: "cancel" },
-        { 
-          text: "Clear All", 
+        {
+          text: "Clear All",
           style: "destructive",
           onPress: async () => {
             try {
@@ -172,52 +201,181 @@ const CameraScreen = () => {
                 try {
                   await FileSystem.deleteAsync(photo.uri, { idempotent: true });
                 } catch (fileError) {
-                  console.log('File already deleted or not found');
+                  console.log("File already deleted or not found");
                 }
               }
               setPhotos([]);
-              await AsyncStorage.removeItem('@plant_photos');
-              setIsPreviewMode(false); // Return to camera
+              await PhotoStorage.clearPhotos();
+              setIsPreviewMode(false);
+              setShowResults(false);
             } catch (error) {
-              console.error('Error clearing photos:', error);
+              console.error("Error clearing photos:", error);
             }
-          }
+          },
         },
       ]
     );
   };
 
   // use photos (for analysis, saving, etc.)
-  const usePhotos = () => {
+  const usePhotos = async () => {
     if (photos.length === 0) {
       Alert.alert("No Photos", "Take some photos first!");
       return;
     }
-    
-    Alert.alert(
-      "Use Photos", 
-      `Ready to analyze ${photos.length} plant photo(s)!`,
-      [
-        { text: "Cancel", style: "cancel" },
-        { 
-          text: "Analyze Plants", 
-          onPress: () => {
-            // Here you would send photos to your plant analysis API
-            console.log("Photos to analyze:", photos);
-            Alert.alert("Analysis Started", "Processing your plant photos...");
-          }
-        },
-      ]
-    );
+
+    setLoading(true);
+    setUploading(true);
+    setLoadingMessage("Analyzing plant photos...");
+
+    try {
+      // Create FormData to send multiple images
+      const formData = new FormData();
+      photos.forEach((photo, index) => {
+        formData.append("files", {
+          uri: photo.uri,
+          name: `plant_photo_${index}.jpg`,
+          type: "image/jpeg",
+        } as any);
+      });
+
+      console.log("🟡 Sending photos to backend for analysis...");
+
+      // POST to FastAPI backend
+      const response = await axios.post(
+        "https://leaflens-16s1.onrender.com/predict_species_and_disease_batch",
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+          timeout: 30000,
+        }
+      );
+
+      console.log("🟢 Backend response:", response.data);
+
+      // Transform backend response to match frontend format
+      const backendData = response.data;
+
+      // Create analysis results array - one result per photo
+      const analysisResults = photos.map((photo, index) => {
+        // Get species prediction (first one from species_predictions)
+        const speciesPrediction = backendData.species_predictions?.[0] || {
+          species: "Unknown",
+          confidence: 0,
+        };
+
+        // Get disease prediction (first one from disease_predictions)
+        const diseasePrediction = backendData.disease_predictions?.[0] || {
+          disease: "Healthy",
+          confidence: 0,
+        };
+
+        return {
+          species: speciesPrediction.species,
+          disease: diseasePrediction.disease,
+          confidence: speciesPrediction.confidence / 100, // Convert from percentage to decimal
+          disease_confidence: diseasePrediction.confidence / 100, // Convert from percentage to decimal
+        };
+      });
+
+      console.log("📊 Transformed analysis results:", analysisResults);
+
+      // Store results and show on screen
+      setAnalysisResults(analysisResults);
+      setShowResults(true);
+    } catch (error: any) {
+      console.error("🔴 Error analyzing photos:", error);
+      Alert.alert(
+        "Analysis Failed",
+        error.response?.data?.detail ||
+          "Failed to analyze photos. Please try again."
+      );
+    } finally {
+      setLoading(false);
+      setUploading(false);
+    }
   };
 
+  // Render individual analysis result
+  const renderAnalysisResult = (result, index) => (
+    <View key={index} style={styles.resultCard}>
+      {/* Photo Preview */}
+      <Image source={{ uri: photos[index]?.uri }} style={styles.resultImage} />
+
+      {/* Analysis Results */}
+      <View style={styles.resultContent}>
+        <Text style={styles.resultTitle}>Photo {index + 1} Analysis</Text>
+
+        {/* Species */}
+        <View style={styles.resultRow}>
+          <Ionicons name="leaf" size={16} color="#27ae60" />
+          <Text style={styles.resultLabel}>Species:</Text>
+          <Text style={styles.resultValue}>{result.species || "Unknown"}</Text>
+        </View>
+
+        {/* Species Confidence */}
+        {result.confidence && (
+          <View style={styles.resultRow}>
+            <Ionicons name="trending-up" size={16} color="#3498db" />
+            <Text style={styles.resultLabel}>Species Confidence:</Text>
+            <Text style={styles.confidenceValue}>
+              {(result.confidence * 100).toFixed(1)}%
+            </Text>
+          </View>
+        )}
+
+        {/* Species Confidence Bar */}
+        {result.confidence && (
+          <View style={styles.confidenceBarContainer}>
+            <View
+              style={[
+                styles.confidenceBar,
+                { width: `${result.confidence * 100}%` },
+              ]}
+            />
+          </View>
+        )}
+
+        {/* Disease */}
+        <View style={styles.resultRow}>
+          <Ionicons name="medical" size={16} color="#e74c3c" />
+          <Text style={styles.resultLabel}>Disease:</Text>
+          <Text style={styles.resultValue}>{result.disease || "Healthy"}</Text>
+        </View>
+
+        {/* Disease Confidence */}
+        {result.disease_confidence && (
+          <View style={styles.resultRow}>
+            <Ionicons name="pulse" size={16} color="#e67e22" />
+            <Text style={styles.resultLabel}>Disease Confidence:</Text>
+            <Text style={styles.confidenceValue}>
+              {(result.disease_confidence * 100).toFixed(1)}%
+            </Text>
+          </View>
+        )}
+
+        {/* Disease Confidence Bar */}
+        {result.disease_confidence && (
+          <View style={styles.confidenceBarContainer}>
+            <View
+              style={[
+                styles.diseaseConfidenceBar,
+                { width: `${result.disease_confidence * 100}%` },
+              ]}
+            />
+          </View>
+        )}
+      </View>
+    </View>
+  );
+
   // render individual photo in the preview list
-  const renderPhotoItem = ({ item }) => (
+  const renderPhotoItem = ({ item }: any) => (
     <View style={styles.photoItem}>
       <Image source={{ uri: item.uri }} style={styles.photoThumbnail} />
       <View style={styles.photoInfo}>
         <Text style={styles.photoTime}>{item.timestamp}</Text>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.deleteButton}
           onPress={() => removePhoto(item.id)}
         >
@@ -227,46 +385,110 @@ const CameraScreen = () => {
     </View>
   );
 
-  // Photo preview screen
+  // Photo preview screen with results
   if (isPreviewMode) {
     return (
       <View style={styles.container}>
         <View style={styles.previewHeader}>
           <Text style={styles.previewTitle}>
-            {photos.length} Photo{photos.length > 1 ? 's' : ''} Taken
+            {photos.length} Photo{photos.length > 1 ? "s" : ""} Taken
           </Text>
           <TouchableOpacity onPress={clearAllPhotos}>
             <Text style={styles.clearAllText}>Clear All</Text>
           </TouchableOpacity>
         </View>
 
-        <FlatList
-          data={photos}
-          renderItem={renderPhotoItem}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.photosList}
-          numColumns={2}
-        />
+        {showResults ? (
+          // Show Analysis Results
+          <View style={styles.resultsSection}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Analysis Results</Text>
+              <TouchableOpacity onPress={() => setShowResults(false)}>
+                <Ionicons name="close" size={20} color="#666" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView
+              style={styles.resultsScrollView}
+              showsVerticalScrollIndicator={false}
+            >
+              {analysisResults.map(renderAnalysisResult)}
+            </ScrollView>
+          </View>
+        ) : (
+          // Show Photo Grid
+          <FlatList
+            data={photos}
+            renderItem={renderPhotoItem}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.photosList}
+            numColumns={2}
+          />
+        )}
 
         <View style={styles.previewButtons}>
-          <TouchableOpacity 
-            style={[styles.actionButton, styles.retakeButton]}
-            onPress={returnToCamera}
-          >
-            <Ionicons name="camera" size={20} color="white" />
-            <Text style={styles.actionButtonText}>Take More</Text>
-          </TouchableOpacity>
+          {showResults ? (
+            // Results Mode Buttons
+            <>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.retakeButton]}
+                onPress={() => setShowResults(false)}
+              >
+                <Ionicons name="images" size={20} color="white" />
+                <Text style={styles.actionButtonText}>View Photos</Text>
+              </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={[styles.actionButton, styles.usePhotosButton]}
-            onPress={usePhotos}
-          >
-            <Ionicons name="analytics" size={20} color="white" />
-            <Text style={styles.actionButtonText}>
-              Analyze ({photos.length})
-            </Text>
-          </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.usePhotosButton]}
+                onPress={returnToCamera}
+              >
+                <Ionicons name="camera" size={20} color="white" />
+                <Text style={styles.actionButtonText}>Take More</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            // Preview Mode Buttons
+            <>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.retakeButton]}
+                onPress={returnToCamera}
+                disabled={uploading}
+              >
+                <Ionicons name="camera" size={20} color="white" />
+                <Text style={styles.actionButtonText}>Take More</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.actionButton,
+                  styles.usePhotosButton,
+                  uploading && styles.disabledButton,
+                ]}
+                onPress={usePhotos}
+                disabled={uploading}
+              >
+                {uploading ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <Ionicons name="analytics" size={20} color="white" />
+                )}
+                <Text style={styles.actionButtonText}>
+                  {uploading ? "Analyzing..." : `Analyze (${photos.length})`}
+                </Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
+
+        {/* Loading Overlay */}
+        {loading && (
+          <View style={styles.loadingOverlay}>
+            <View style={styles.loadingBox}>
+              <ActivityIndicator size="large" color="#3f704d" />
+              <Text style={styles.loadingText}>{loadingMessage}</Text>
+            </View>
+          </View>
+        )}
       </View>
     );
   }
@@ -275,7 +497,7 @@ const CameraScreen = () => {
   return (
     <View style={styles.container}>
       <CameraView style={styles.camera} facing={facing} ref={cameraRef} />
-      
+
       <View style={styles.buttonContainer}>
         <TouchableOpacity style={styles.button} onPress={toggleCameraFacing}>
           <Ionicons name="camera-reverse" size={30} color="white" />

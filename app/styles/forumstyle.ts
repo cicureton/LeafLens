@@ -3,7 +3,10 @@ import { StyleSheet } from "react-native";
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#f8f9fa",
   },
+  
+  // Header Styles
   header: {
     backgroundColor: "#3f704d",
     padding: 20,
@@ -30,6 +33,20 @@ export const styles = StyleSheet.create({
     borderRadius: 20,
     marginTop: 50,
   },
+  signInButton: {
+    backgroundColor: "rgba(255,255,255,0.2)",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginTop: 50,
+  },
+  signInText: {
+    color: "white",
+    fontWeight: "600",
+    fontSize: 14,
+  },
+
+  // Search Styles
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -51,12 +68,8 @@ export const styles = StyleSheet.create({
     fontSize: 16,
     color: "#333",
   },
-  categoryName: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: "#2c3e50",
-    marginLeft: 8,
-  },
+
+  // Category Tabs
   categoriesContainer: {
     paddingHorizontal: 15,
   },
@@ -75,26 +88,17 @@ export const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 2,
   },
-  categoryTabActive: {
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
-  },
   categoryIcon: {
     fontSize: 16,
     marginRight: 6,
   },
-  categoryText: {
+  categoryName: {
     fontSize: 14,
     fontWeight: "500",
-    color: "#333",
+    color: "#2c3e50",
   },
-  categoryTextActive: {
-    color: "white",
-    fontWeight: "600",
-  },
+
+  // Posts List
   postsList: {
     padding: 15,
     paddingBottom: 80,
@@ -138,6 +142,11 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
+  },
+  categoryText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "white",
   },
   postTitle: {
     fontSize: 18,
@@ -192,6 +201,8 @@ export const styles = StyleSheet.create({
     color: "#e74c3c",
     fontWeight: "600",
   },
+
+  // Floating Action Button
   fab: {
     position: "absolute",
     right: 20,
@@ -208,6 +219,8 @@ export const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 5,
   },
+
+  // Empty States
   emptyState: {
     alignItems: "center",
     justifyContent: "center",
@@ -225,8 +238,32 @@ export const styles = StyleSheet.create({
     color: "#bdc3c7",
     textAlign: "center",
   },
+  createFirstPostButton: {
+    backgroundColor: "#3f704d",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 16,
+  },
+  createFirstPostText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "600",
+  },
 
-  // Modal Styles for creating a new post
+  // Loading States
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: "#666",
+  },
+
+  // Modal Styles
   modalContainer: {
     flex: 1,
     backgroundColor: "white",
@@ -248,6 +285,8 @@ export const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
   },
+
+  // New Post Form Styles
   inputLabel: {
     fontSize: 16,
     fontWeight: "600",
@@ -285,11 +324,27 @@ export const styles = StyleSheet.create({
     borderRadius: 16,
     marginRight: 8,
     marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "transparent",
   },
   categoryOptionText: {
     fontSize: 14,
     fontWeight: "500",
     color: "#2c3e50",
+  },
+  categoryOptionTextActive: {
+    color: "white",
+    fontWeight: "600",
+  },
+  selectedCategoryDisplay: {
+    backgroundColor: "#e8f5e8",
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 10,
+  },
+  selectedCategoryText: {
+    fontSize: 14,
+    color: "#3f704d",
   },
   modalFooter: {
     flexDirection: "row",
@@ -318,48 +373,170 @@ export const styles = StyleSheet.create({
     marginLeft: 10,
     alignItems: "center",
   },
+  postButtonDisabled: {
+    backgroundColor: "#cccccc",
+    opacity: 0.6,
+  },
   postButtonText: {
     fontSize: 16,
     fontWeight: "600",
     color: "white",
   },
-  // Add these to your existing styles
-  categoryOptionTextActive: {
-    color: "white",
-    fontWeight: "600",
+
+  // Replies Modal Styles
+  repliesList: {
+    padding: 16,
+    flexGrow: 1,
   },
-  selectedCategoryDisplay: {
-    backgroundColor: "#e8f5e8",
-    padding: 12,
-    borderRadius: 8,
-    marginTop: 10,
+  replyCard: {
+    backgroundColor: "#f8f9fa",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: "#3f704d",
   },
-  selectedCategoryText: {
+  replyHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  replyAuthorInfo: {
+    marginLeft: 8,
+    flex: 1,
+  },
+  replyAuthor: {
     fontSize: 14,
-    color: "#3f704d",
+    fontWeight: "600",
+    color: "#333",
   },
-  postButtonDisabled: {
-    backgroundColor: "#cccccc",
-    opacity: 0.6,
+  replyTimestamp: {
+    fontSize: 12,
+    color: "#666",
+  },
+  replyContent: {
+    fontSize: 14,
+    color: "#444",
+    lineHeight: 20,
   },
 
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
+  // Original Post in Replies Modal
+  originalPost: {
+    backgroundColor: "white",
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e9ecef",
+  },
+  originalPostTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#333",
+    marginBottom: 8,
+  },
+  originalPostContent: {
+    fontSize: 14,
+    color: "#666",
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  originalPostFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
   },
+  originalPostAuthor: {
+    fontSize: 12,
+    color: "#999",
+  },
+  likeButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 4,
+  },
+  likeCount: {
+    fontSize: 12,
+    color: "#666",
+    marginLeft: 4,
+    fontWeight: "500",
+  },
 
-  signInButton: {
+  // Reply Input Styles
+  replyInputContainer: {
+    borderTopWidth: 1,
+    borderTopColor: "#e9ecef",
+    padding: 16,
+  },
+  addReplyButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#f8f9fa",
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#e9ecef",
+  },
+  addReplyText: {
+    color: "#3f704d",
+    fontWeight: "600",
+    marginLeft: 8,
+  },
+  replyInput: {
+    backgroundColor: "#f8f9fa",
+    borderRadius: 8,
+    padding: 12,
+  },
+  replyTextInput: {
+    fontSize: 14,
+    color: "#333",
+    minHeight: 60,
+    textAlignVertical: "top",
+  },
+  replyActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    marginTop: 8,
+    gap: 8,
+  },
+  cancelReplyButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  cancelReplyText: {
+    color: "#666",
+    fontWeight: "600",
+  },
+  postReplyButton: {
     backgroundColor: "#3f704d",
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 20,
+    borderRadius: 6,
   },
-
-  signInText: {
+  postReplyButtonDisabled: {
+    backgroundColor: "#cccccc",
+  },
+  postReplyText: {
     color: "white",
     fontWeight: "600",
+  },
+
+  // Empty Replies State
+  emptyReplies: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 40,
+  },
+  emptyRepliesText: {
+    fontSize: 16,
+    color: "#999",
+    marginTop: 12,
+  },
+  emptyRepliesSubtext: {
     fontSize: 14,
+    color: "#999",
+    textAlign: "center",
+    marginTop: 4,
   },
 });
 

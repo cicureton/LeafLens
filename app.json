@@ -3,14 +3,7 @@
     "name": "LeafLens",
     "slug": "LeafLens",
     "version": "1.0.0",
-    "extra": {
-      "firebaseApiKey": "AIzaSyCrmfYJ0JFhc81GaRGgCEj-s6zXpo8PaIY",
-      "firebaseAuthDomain": "leaflens-yourproject.firebaseapp.com",
-      "firebaseProjectId": "leaflens-4e327",
-      "firebaseStorageBucket": "leaflens-4e327.firebasestorage.app",
-      "firebaseMessagingSenderId": "123456789",
-      "firebaseAppId": "1:357454411155:ios:9a00b310f1b74a5e21a466"
-    },
+    "proxy": "https://leaflens-16s1.onrender.com",
     "orientation": "portrait",
     "icon": "./assets/images/logo.png",
     "scheme": "leaflens",

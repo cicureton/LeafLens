@@ -1,7 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -15,7 +14,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { auth } from '../app/firebase';
+import { authAPI } from "../app/api";
 
 const Signup = () => {
   const [name, setName] = useState("");
@@ -24,71 +23,58 @@ const Signup = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleSignup = async () => {
-    if (!name || !email || !password || !confirmPassword) {
-      Alert.alert("Error", "Please fill in all fields");
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      Alert.alert("Error", "Passwords do not match");
-      return;
-    }
-
-    if (password.length < 6) {
-      Alert.alert("Error", "Password must be at least 6 characters");
-      return;
-    }
-
-    setLoading(true);
+  // In your SignupScreen component
+  const handleSignup = async (formData: {
+    name: string;
+    email: string;
+    password: string; // This comes from the form
+    user_type?: string;
+  }) => {
     try {
-      // Create user with Firebase Auth
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-      
-      // Update user profile with display name
-      await updateProfile(user, {
-        displayName: name
+      console.log("🚀 Starting signup process...");
+
+      // Transform to match backend expectations
+      const registrationData = {
+        name: formData.name,
+        email: formData.email,
+        password_hash: formData.password, // Convert 'password' to 'password_hash'
+        user_type: formData.user_type || "user",
+      };
+
+      console.log("🟡 Transformed data for backend:", {
+        ...registrationData,
+        password_hash: "[HIDDEN]",
       });
 
-      // Store user data locally
-      const userData = {
-        uid: user.uid,
-        email: user.email,
-        displayName: name,
-        photoURL: user.photoURL
-      };
-      
-      await AsyncStorage.setItem('userData', JSON.stringify(userData));
-      
-      Alert.alert("Success", "Account created successfully! 🎉");
-      router.replace("/tabs/home");
-      
-    } catch (error: any) {
-      console.log('Firebase error code:', error.code);
-      
-      // Handle specific Firebase auth errors
-      switch (error.code) {
-        case 'auth/email-already-in-use':
-          Alert.alert("Signup Failed", "This email is already registered. Please login instead.");
-          break;
-        case 'auth/invalid-email':
-          Alert.alert("Signup Failed", "Invalid email address format.");
-          break;
-        case 'auth/weak-password':
-          Alert.alert("Signup Failed", "Password is too weak. Please use a stronger password.");
-          break;
-        case 'auth/network-request-failed':
-          Alert.alert("Signup Failed", "Network error. Please check your internet connection.");
-          break;
-        default:
-          Alert.alert("Signup Failed", "An error occurred. Please try again.");
+      const result = await authAPI.register(registrationData);
+
+      console.log("🟢 Signup successful!", result);
+
+      // Store user data and token
+      if (result.user && result.access_token) {
+        await AsyncStorage.setItem("user_token", result.access_token);
+        await AsyncStorage.setItem("user_data", JSON.stringify(result.user));
+
+        // Navigate to app
+        router.replace("/tabs/home");
       }
-    } finally {
-      setLoading(false);
+    } catch (error: any) {
+      console.log("❌ Signup error:", error);
+
+      // Show user-friendly error message
+      let errorMessage = "Signup failed. Please try again.";
+
+      if (error.status === 422) {
+        errorMessage = "Invalid data. Please check your information.";
+      } else if (error.status === 409) {
+        errorMessage = "Email already exists. Please use a different email.";
+      } else if (error.message.includes("Network")) {
+        errorMessage = "Network error. Please check your connection.";
+      }
+
+      Alert.alert("Signup Failed", errorMessage);
     }
   };
-
 
   return (
     <LinearGradient colors={["#043927", "#00A86B"]} style={styles.container}>
@@ -107,61 +93,61 @@ const Signup = () => {
           <View style={styles.innerContainer}>
             <Text style={styles.title}>Create Account</Text>
 
-          <TextInput
-            style={styles.input}
-            placeholder="Username"
-            placeholderTextColor="#666"
-            value={name}
-            onChangeText={setName}
-            autoCapitalize="none"
-            editable={!loading}
-          />
+            <TextInput
+              style={styles.input}
+              placeholder="Full Name"
+              placeholderTextColor="#666"
+              value={name}
+              onChangeText={setName}
+              autoCapitalize="words"
+              editable={!loading}
+            />
 
-          <TextInput
-            style={styles.input}
-            placeholder="Email"
-            placeholderTextColor="#666"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            editable={!loading}
-          />
+            <TextInput
+              style={styles.input}
+              placeholder="Email"
+              placeholderTextColor="#666"
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              editable={!loading}
+            />
 
-          <TextInput
-            style={styles.input}
-            placeholder="Password"
-            placeholderTextColor="#666"
-            secureTextEntry
-            value={password}
-            onChangeText={setPassword}
-            editable={!loading}
-          />
+            <TextInput
+              style={styles.input}
+              placeholder="Password"
+              placeholderTextColor="#666"
+              secureTextEntry
+              value={password}
+              onChangeText={setPassword}
+              editable={!loading}
+            />
 
-          <TextInput
-            style={styles.input}
-            placeholder="Confirm Password"
-            placeholderTextColor="#666"
-            secureTextEntry
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            editable={!loading}
-          />
+            <TextInput
+              style={styles.input}
+              placeholder="Confirm Password"
+              placeholderTextColor="#666"
+              secureTextEntry
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              editable={!loading}
+            />
 
-          <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleSignup}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="white" />
-            ) : (
-              <Text style={styles.buttonText}>Sign Up</Text>
-            )}
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.button, loading && styles.buttonDisabled]}
+              onPress={handleSignup}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="white" />
+              ) : (
+                <Text style={styles.buttonText}>Sign Up</Text>
+              )}
+            </TouchableOpacity>
 
-          {/* Switch to Login link */}
-          <Text style={styles.switchText}>Already have an account?</Text>
+            {/* Switch to Login */}
+            <Text style={styles.switchText}>Already have an account?</Text>
             <TouchableOpacity onPress={() => router.replace("/")}>
               <Text style={styles.buttonTextWithUnderline}>Login</Text>
             </TouchableOpacity>
@@ -198,20 +184,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "white",
     marginBottom: 20,
-  },
-  subtitle: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "white",
-    marginBottom: 20,
-  },
-  normalText: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "white",
-    marginBottom: 15,
-    textAlign: "left",
-    width: "90%",
   },
   input: {
     width: "90%",

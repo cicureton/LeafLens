@@ -1,8 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import * as SecureStorage from "expo-secure-store";
-import { onAuthStateChanged, signOut } from "firebase/auth";
 import React, { useEffect, useState } from "react";
 import {
   Alert,
@@ -14,7 +12,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { auth } from "../../app/firebase";
+import { usersAPI } from "../../app/api";
 import { styles } from "../styles/profilestyle";
 
 const ProfileScreen = () => {
@@ -24,52 +22,49 @@ const ProfileScreen = () => {
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Load user data from Firebase and AsyncStorage
+  // Load user data from AsyncStorage
   useEffect(() => {
     const loadUserData = async () => {
       try {
-        // Get user from Firebase auth
-        const currentUser = auth.currentUser;
+        const storedUserData = await AsyncStorage.getItem('userData');
         
-        if (currentUser) {
-          // Try to get additional data from AsyncStorage
-          const storedUserData = await AsyncStorage.getItem('userData');
-          const parsedData = storedUserData ? JSON.parse(storedUserData) : {};
+        if (storedUserData) {
+          const parsedData = JSON.parse(storedUserData);
           
-          // Combine Firebase user data with stored data
-          const userInfo = {
-            uid: currentUser.uid,
-            username: currentUser.displayName?.toLowerCase().replace(/\s+/g, '') || "plantlover",
-            name: currentUser.displayName || "Plant Lover",
-            email: currentUser.email,
-            joinDate: new Date(currentUser.metadata.creationTime).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
-            plantsCount: 0, // You can fetch these from your backend later
-            postsCount: 0,
-            likesCount: 0,
-            photoURL: currentUser.photoURL,
-            ...parsedData // Override with any stored data
-          };
-          
-          setUserData(userInfo);
+          // Optionally fetch fresh user data from backend
+          try {
+            const freshUserData = await usersAPI.getUser(parsedData.uid);
+            // Merge with stored data
+            const userInfo = {
+              ...parsedData,
+              ...freshUserData,
+              username: parsedData.displayName?.toLowerCase().replace(/\s+/g, '') || "plantlover",
+              joinDate: new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+            };
+            setUserData(userInfo);
+          } catch (error) {
+            // Use stored data if backend fails
+            console.log('Using stored user data');
+            const userInfo = {
+              ...parsedData,
+              username: parsedData.displayName?.toLowerCase().replace(/\s+/g, '') || "plantlover",
+              joinDate: new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+            };
+            setUserData(userInfo);
+          }
+        } else {
+          // No user data found, redirect to login
+          router.replace("/");
         }
       } catch (error) {
         console.error("Error loading user data:", error);
+        Alert.alert("Error", "Failed to load profile data");
       } finally {
         setLoading(false);
       }
     };
 
-    // Listen for auth state changes
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        loadUserData();
-      } else {
-        // No user signed in, redirect to login
-        router.replace("/");
-      }
-    });
-
-    return unsubscribe;
+    loadUserData();
   }, []);
 
   const handleSignOut = async () => {
@@ -80,12 +75,9 @@ const ProfileScreen = () => {
         style: "destructive",
         onPress: async () => {
           try {
-            // Sign out from Firebase
-            await signOut(auth);
-            
-            // Clear local storage
+            // Clear all local storage
             await AsyncStorage.removeItem("userData");
-            await SecureStorage.deleteItemAsync("auth_token");
+            await AsyncStorage.removeItem("user_token");
 
             // Navigate to login screen
             router.replace("/");
@@ -217,7 +209,7 @@ const ProfileScreen = () => {
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.userName}>{userData.name}</Text>
+          <Text style={styles.userName}>{userData.displayName}</Text>
           <Text style={styles.username}>@{userData.username}</Text>
           <Text style={styles.userEmail}>{userData.email}</Text>
           <Text style={styles.joinDate}>Member since {userData.joinDate}</Text>

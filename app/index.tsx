@@ -1,7 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import { signInWithEmailAndPassword } from 'firebase/auth';
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -15,48 +14,42 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { auth } from '../app/firebase';
+import { authAPI } from "../app/api";
 
 export default function LoginScreen() {
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert("Error", "Please fill in all fields");
+      Alert.alert("Error", "Please enter both email and password");
       return;
     }
 
     setLoading(true);
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-      
+      const loginResponse = await authAPI.login(email, password);
+
       const userData = {
-        uid: user.uid,
-        email: user.email,
-        displayName: user.displayName || email.split('@')[0]
+        uid: loginResponse.user.id,
+        email: loginResponse.user.email,
+        displayName: loginResponse.user.name,
+        token: loginResponse.access_token,
       };
-      
-      await AsyncStorage.setItem('userData', JSON.stringify(userData));
-      Alert.alert("Success", `Welcome back!`);
+
+      await AsyncStorage.setItem("userData", JSON.stringify(userData));
+      await AsyncStorage.setItem("user_token", loginResponse.access_token);
+
+      Alert.alert("Success", "Login successful! 🎉");
       router.replace("/tabs/home");
-    } catch (error: any) {
-      // Handle Firebase errors
-      if (error.code === 'auth/user-not-found') {
-        Alert.alert("Login Failed", "No account found. Please sign up.");
-      } else if (error.code === 'auth/wrong-password') {
-        Alert.alert("Login Failed", "Incorrect password.");
-      } else {
-        Alert.alert("Login Failed", error.message);
-      }
+    } catch (error) {
+      console.log('Login error:', error);
+      Alert.alert("Error", "Invalid email or password");
     } finally {
       setLoading(false);
     }
   };
-
 
   return (
     <LinearGradient colors={["#043927", "#00A86B"]} style={styles.container}>
@@ -102,21 +95,9 @@ export default function LoginScreen() {
               value={password}
               onChangeText={setPassword}
               editable={!loading}
+              onSubmitEditing={handleLogin}
             />
           </View>
-
-          {/* Signup link */}
-          <Text style={styles.normalText}>Don't have an account?</Text>
-          <TouchableOpacity 
-            onPress={() => router.replace("/signup")}
-            disabled={loading}
-          >
-            <Text style={[
-              styles.buttonTextWithUnderline,
-              loading && styles.disabledText
-            ]}>Sign Up</Text>
-          </TouchableOpacity>
-
 
           {/* Login button */}
           <TouchableOpacity
@@ -131,6 +112,21 @@ export default function LoginScreen() {
             )}
           </TouchableOpacity>
 
+          {/* Signup link */}
+          <Text style={styles.normalText}>Don't have an account?</Text>
+          <TouchableOpacity
+            onPress={() => router.replace("/signup")}
+            disabled={loading}
+          >
+            <Text
+              style={[
+                styles.buttonTextWithUnderline,
+                loading && styles.disabledText,
+              ]}
+            >
+              Sign Up
+            </Text>
+          </TouchableOpacity>
         </ScrollView>
       </SafeAreaView>
     </LinearGradient>
@@ -156,15 +152,18 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     flexDirection: "row",
+    alignItems: "center",
     width: "90%",
+    backgroundColor: "white",
     borderRadius: 8,
     paddingHorizontal: 12,
     marginBottom: 15,
     alignSelf: "center",
   },
   inputIcon: {
-    width: 40,
-    height: 40,
+    width: 24,
+    height: 24,
+    marginRight: 10,
   },
   normalText: {
     color: "white",
@@ -172,14 +171,11 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: 10,
     textAlign: "center",
+    marginTop: 10,
   },
   input: {
-    width: "90%",
-    backgroundColor: "white",
-    borderRadius: 8,
+    flex: 1,
     padding: 12,
-    marginBottom: 15,
-    alignSelf: "center",
   },
   button: {
     width: "50%",
