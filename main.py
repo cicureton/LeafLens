@@ -112,7 +112,7 @@ def get_disease(disease_id: int, db: Session = Depends(get_db)):
 @app.post("/scans/", response_model=schemas.ScanResponse)
 def create_scan(scan: schemas.ScanCreate, db: Session = Depends(get_db)):
     new_scan = models.Scan(
-        user_id=scan.user_id,
+        user_id=user_id,
         plant_id=scan.plant_id,
         disease_id=scan.disease_id,
         confidence_score=scan.confidence_score
@@ -252,11 +252,13 @@ disease_transform = transforms.Compose([
 # -- endpiont --
 @app.post("/predict_species_and_disease_batch")
 async def predict_species_and_disease_batch(
+    user_id: int = Form(...),
     files: List[UploadFile] = File(...),
     topk_species: int = 1,
     topk_disease: int = 4,
     db: Session = Depends(get_db)
 ):
+    
     """
     Predict species and diseases for a batch of images.
     Disease predictions will be filtered based on the top predicted species.
