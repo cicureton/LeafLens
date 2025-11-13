@@ -1,29 +1,29 @@
 import os, shutil
 from typing import Optional, List
-from fastapi import FastAPI, Depends, HTTPException, UploadFile, File
+
+from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Form
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+
 from sqlalchemy.orm import Session
+from sqlalchemy import func
+
 import models, schemas
 from database import SessionLocal, engine, Base
-from fastapi.responses import JSONResponse
+
 from PIL import Image
 import torch
 import io
 from torchvision import transforms
 from torchvision.models import mobilenet_v3_large
+import torch.nn as nn
+
 import json
 from utils import load_model
 from filter_modules import normalize_species_name, filter_disease_predictions
 from disease_classes import disease_classes
-import torch.nn as nn
 from mapping import species_to_diseases
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
-from sqlalchemy import func
-
-
-
 
 
 Base.metadata.create_all(bind=engine)
@@ -110,7 +110,7 @@ def get_disease(disease_id: int, db: Session = Depends(get_db)):
     return disease
 
 @app.post("/scans/", response_model=schemas.ScanResponse)
-def create_scan(scan: schemas.ScanCreate, db: Session = Depends(get_db)):
+def create_scan(scan: schemas.ScanCreate,user_id: int = Form(...), db: Session = Depends(get_db)):
     new_scan = models.Scan(
         user_id=user_id,
         plant_id=scan.plant_id,
@@ -342,6 +342,7 @@ async def predict_species_and_disease_batch(
 
 
     new_scan = models.Scan(
+    user_id=user_id,    
     plant_id=None,  # optional: set if known
     disease_id=disease_id,
     confidence_score=top_confidence
