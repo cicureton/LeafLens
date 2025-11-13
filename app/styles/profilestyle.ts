@@ -187,7 +187,30 @@ export const styles = StyleSheet.create({
     fontSize: 14,
     color: "#666",
     fontStyle: "italic",
-  },  
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: "#666",
+  },
+  errorText: {
+    fontSize: 18,
+    color: "#e74c3c",
+    marginTop: 16,
+    marginBottom: 20,
+    textAlign: "center",
+  },
+  errorButton: {
+    backgroundColor: "#3f704d",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  errorButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "600",
+  },
 });
 
 export default styles;

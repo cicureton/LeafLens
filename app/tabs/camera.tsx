@@ -229,62 +229,86 @@ const CameraScreen = () => {
     setLoadingMessage("Analyzing plant photos...");
 
     try {
-      // Create FormData to send multiple images
-      const formData = new FormData();
-      photos.forEach((photo, index) => {
-        formData.append("files", {
-          uri: photo.uri,
-          name: `plant_photo_${index}.jpg`,
-          type: "image/jpeg",
-        } as any);
-      });
+      console.log(`🟡 Analyzing ${photos.length} photos individually...`);
 
-      console.log("🟡 Sending photos to backend for analysis...");
+      // Process each photo individually
+      const analysisResults = [];
 
-      // POST to FastAPI backend
-      const response = await axios.post(
-        "https://leaflens-16s1.onrender.com/predict_species_and_disease_batch",
-        formData,
-        {
-          headers: { "Content-Type": "multipart/form-data" },
-          timeout: 30000,
+      for (let i = 0; i < photos.length; i++) {
+        const photo = photos[i];
+        setLoadingMessage(`Analyzing photo ${i + 1} of ${photos.length}...`);
+
+        try {
+          // Create FormData for single image
+          const formData = new FormData();
+          formData.append("files", {
+            uri: photo.uri,
+            name: `plant_photo_${i}.jpg`,
+            type: "image/jpeg",
+          } as any);
+
+          console.log(`📤 Sending photo ${i + 1} to backend...`);
+
+          // POST to FastAPI backend - single image
+          const response = await axios.post(
+            "https://leaflens-16s1.onrender.com/predict_species_and_disease_batch",
+            formData,
+            {
+              headers: { "Content-Type": "multipart/form-data" },
+              timeout: 30000,
+            }
+          );
+
+          console.log(`✅ Photo ${i + 1} response:`, response.data);
+
+          // Transform backend response for this single photo
+          const backendData = response.data;
+
+          // Get species prediction (first one from species_predictions)
+          const speciesPrediction = backendData.species_predictions?.[0] || {
+            species: "Unknown",
+            confidence: 0,
+          };
+
+          // Get disease prediction (first one from disease_predictions)
+          const diseasePrediction = backendData.disease_predictions?.[0] || {
+            disease: "Healthy",
+            confidence: 0,
+          };
+
+          analysisResults.push({
+            species: speciesPrediction.species,
+            disease: diseasePrediction.disease,
+            confidence: speciesPrediction.confidence / 100, // Convert from percentage to decimal
+            disease_confidence: diseasePrediction.confidence / 100, // Convert from percentage to decimal
+            photoIndex: i,
+          });
+        } catch (photoError) {
+          console.error(`🔴 Error analyzing photo ${i + 1}:`, photoError);
+          // Add error result for this photo
+          analysisResults.push({
+            species: "Analysis Failed",
+            disease: "Unable to process",
+            confidence: 0,
+            disease_confidence: 0,
+            photoIndex: i,
+            error: true,
+          });
         }
-      );
 
-      console.log("🟢 Backend response:", response.data);
+        // Small delay to avoid overwhelming the backend
+        if (i < photos.length - 1) {
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        }
+      }
 
-      // Transform backend response to match frontend format
-      const backendData = response.data;
-
-      // Create analysis results array - one result per photo
-      const analysisResults = photos.map((photo, index) => {
-        // Get species prediction (first one from species_predictions)
-        const speciesPrediction = backendData.species_predictions?.[0] || {
-          species: "Unknown",
-          confidence: 0,
-        };
-
-        // Get disease prediction (first one from disease_predictions)
-        const diseasePrediction = backendData.disease_predictions?.[0] || {
-          disease: "Healthy",
-          confidence: 0,
-        };
-
-        return {
-          species: speciesPrediction.species,
-          disease: diseasePrediction.disease,
-          confidence: speciesPrediction.confidence / 100, // Convert from percentage to decimal
-          disease_confidence: diseasePrediction.confidence / 100, // Convert from percentage to decimal
-        };
-      });
-
-      console.log("📊 Transformed analysis results:", analysisResults);
+      console.log("📊 All analysis results:", analysisResults);
 
       // Store results and show on screen
       setAnalysisResults(analysisResults);
       setShowResults(true);
     } catch (error: any) {
-      console.error("🔴 Error analyzing photos:", error);
+      console.error("🔴 Overall analysis error:", error);
       Alert.alert(
         "Analysis Failed",
         error.response?.data?.detail ||
@@ -296,74 +320,96 @@ const CameraScreen = () => {
     }
   };
 
-  // Render individual analysis result
+  // Render individual analysis result with error states
   const renderAnalysisResult = (result, index) => (
-    <View key={index} style={styles.resultCard}>
+    <View
+      key={index}
+      style={[styles.resultCard, result.error && styles.errorCard]}
+    >
       {/* Photo Preview */}
       <Image source={{ uri: photos[index]?.uri }} style={styles.resultImage} />
 
       {/* Analysis Results */}
       <View style={styles.resultContent}>
-        <Text style={styles.resultTitle}>Photo {index + 1} Analysis</Text>
+        <Text style={styles.resultTitle}>
+          Photo {index + 1} Analysis
+          {result.error && " ⚠️"}
+        </Text>
 
-        {/* Species */}
-        <View style={styles.resultRow}>
-          <Ionicons name="leaf" size={16} color="#27ae60" />
-          <Text style={styles.resultLabel}>Species:</Text>
-          <Text style={styles.resultValue}>{result.species || "Unknown"}</Text>
-        </View>
-
-        {/* Species Confidence */}
-        {result.confidence && (
-          <View style={styles.resultRow}>
-            <Ionicons name="trending-up" size={16} color="#3498db" />
-            <Text style={styles.resultLabel}>Species Confidence:</Text>
-            <Text style={styles.confidenceValue}>
-              {(result.confidence * 100).toFixed(1)}%
-            </Text>
+        {result.error ? (
+          // Error state
+          <View style={styles.errorSection}>
+            <Ionicons name="warning" size={20} color="#e74c3c" />
+            <Text style={styles.errorText}>Failed to analyze this photo</Text>
+            {result.errorMessage && (
+              <Text style={styles.errorDetail}>{result.errorMessage}</Text>
+            )}
           </View>
-        )}
+        ) : (
+          // Success state
+          <>
+            {/* Species */}
+            <View style={styles.resultRow}>
+              <Ionicons name="leaf" size={16} color="#27ae60" />
+              <Text style={styles.resultLabel}>Species:</Text>
+              <Text style={styles.resultValue}>
+                {result.species || "Unknown"}
+              </Text>
+            </View>
 
-        {/* Species Confidence Bar */}
-        {result.confidence && (
-          <View style={styles.confidenceBarContainer}>
-            <View
-              style={[
-                styles.confidenceBar,
-                { width: `${result.confidence * 100}%` },
-              ]}
-            />
-          </View>
-        )}
+            {/* Species Confidence */}
+            {result.confidence > 0 && (
+              <>
+                <View style={styles.resultRow}>
+                  <Ionicons name="trending-up" size={16} color="#3498db" />
+                  <Text style={styles.resultLabel}>Species Confidence:</Text>
+                  <Text style={styles.confidenceValue}>
+                    {(result.confidence * 100).toFixed(1)}%
+                  </Text>
+                </View>
 
-        {/* Disease */}
-        <View style={styles.resultRow}>
-          <Ionicons name="medical" size={16} color="#e74c3c" />
-          <Text style={styles.resultLabel}>Disease:</Text>
-          <Text style={styles.resultValue}>{result.disease || "Healthy"}</Text>
-        </View>
+                <View style={styles.confidenceBarContainer}>
+                  <View
+                    style={[
+                      styles.confidenceBar,
+                      { width: `${result.confidence * 100}%` },
+                    ]}
+                  />
+                </View>
+              </>
+            )}
 
-        {/* Disease Confidence */}
-        {result.disease_confidence && (
-          <View style={styles.resultRow}>
-            <Ionicons name="pulse" size={16} color="#e67e22" />
-            <Text style={styles.resultLabel}>Disease Confidence:</Text>
-            <Text style={styles.confidenceValue}>
-              {(result.disease_confidence * 100).toFixed(1)}%
-            </Text>
-          </View>
-        )}
+            {/* Disease */}
+            <View style={styles.resultRow}>
+              <Ionicons name="medical" size={16} color="#e74c3c" />
+              <Text style={styles.resultLabel}>Disease:</Text>
+              <Text style={styles.resultValue}>
+                {result.disease || "Healthy"}
+              </Text>
+            </View>
 
-        {/* Disease Confidence Bar */}
-        {result.disease_confidence && (
-          <View style={styles.confidenceBarContainer}>
-            <View
-              style={[
-                styles.diseaseConfidenceBar,
-                { width: `${result.disease_confidence * 100}%` },
-              ]}
-            />
-          </View>
+            {/* Disease Confidence */}
+            {result.disease_confidence > 0 && (
+              <>
+                <View style={styles.resultRow}>
+                  <Ionicons name="pulse" size={16} color="#e67e22" />
+                  <Text style={styles.resultLabel}>Disease Confidence:</Text>
+                  <Text style={styles.confidenceValue}>
+                    {(result.disease_confidence * 100).toFixed(1)}%
+                  </Text>
+                </View>
+
+                <View style={styles.confidenceBarContainer}>
+                  <View
+                    style={[
+                      styles.diseaseConfidenceBar,
+                      { width: `${result.disease_confidence * 100}%` },
+                    ]}
+                  />
+                </View>
+              </>
+            )}
+          </>
         )}
       </View>
     </View>

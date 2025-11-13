@@ -119,11 +119,16 @@ const ForumScreen = () => {
     }
   };
 
-  // Load forum posts from backend - FIXED VERSION
+  // In your ForumScreen component - FIXED loadForumPosts function
   const loadForumPosts = async () => {
     try {
+      console.log("🔄 Loading forum posts...");
       const response = await forumAPI.getForumPosts();
+
+      // FIX: response.data should now contain the array of posts
       const backendPosts = response.data || [];
+
+      console.log("📥 Backend posts received:", backendPosts);
 
       // Transform backend data to frontend format
       const transformedPosts = await Promise.all(
@@ -142,47 +147,29 @@ const ForumScreen = () => {
               );
             }
 
-            // Use like_count from backend response
-            const likeCount = post.like_count || 0;
-
-            // Check if current user has liked this post
-            const isLiked = userData ? userLikedPosts.has(post.post_id) : false;
-
             return {
               post_id: post.post_id,
               user_id: post.user_id,
               title: post.title,
               content: post.content,
               timestamp: post.timestamp,
-              author: `User${post.user_id}`,
+              author: `User${post.user_id}`, // You might want to get actual username
               replies: replyCount,
-              likes: likeCount, // Use the actual like count from backend
-              isLiked: isLiked,
+              likes: post.like_count || 0,
+              isLiked: userData ? userLikedPosts.has(post.post_id) : false,
               category: extractCategoryFromContent(post.content),
               tags: extractTagsFromContent(post.content),
             };
           } catch (error) {
             console.error("Error processing post:", post.post_id, error);
-            return {
-              post_id: post.post_id,
-              user_id: post.user_id,
-              title: post.title,
-              content: post.content,
-              timestamp: post.timestamp,
-              author: `User${post.user_id}`,
-              replies: 0,
-              likes: post.like_count || 0, // Fallback to backend data
-              isLiked: false,
-              category: "plant-care",
-              tags: ["help"],
-            };
+            return null;
           }
         })
       );
 
       setForumPosts(transformedPosts);
     } catch (error) {
-      console.error("Error loading forum posts:", error);
+      console.error("❌ Error loading forum posts:", error);
       Alert.alert("Error", "Failed to load forum posts");
       setForumPosts([]);
     } finally {
@@ -341,7 +328,7 @@ const ForumScreen = () => {
     }
   };
 
-  // Handle creating a new post - FIXED: Include like_count
+  // In ForumScreen - FIXED handleCreatePost function
   const handleCreatePost = async () => {
     if (!userData) {
       Alert.alert("Sign In Required", "Please sign in to create posts");
@@ -357,36 +344,45 @@ const ForumScreen = () => {
     try {
       const userId = userData.uid ? parseInt(userData.uid) : userData.id || 1;
 
-      // FIX:
       const newPostData = {
         user_id: userId,
         title: newPostTitle.trim(),
         content: newPostContent.trim(),
-        // ❌ REMOVE THIS: like_count: 0 because backend handles it
       };
 
-      console.log("📤 Sending post data:", newPostData); // Debug log
+      console.log("📤 Sending post data:", newPostData);
 
       const response = await forumAPI.createForumPost(newPostData);
+
+      // FIX: Now response.data should be properly defined
+      console.log("📥 Full API response:", response);
+
+      if (!response || !response.data) {
+        throw new Error("No response data received from server");
+      }
+
       const backendPost = response.data;
+      console.log("✅ Post created successfully:", backendPost);
 
-      console.log("✅ Post created successfully:", backendPost); // Debug log
-
+      // Create the new post object
       const newPost: Post = {
-        post_id: backendPost.post_id,
-        user_id: userId,
-        title: newPostTitle.trim(),
-        content: newPostContent.trim(),
-        timestamp: new Date().toISOString(),
+        post_id: backendPost.post_id, // This should now work
+        user_id: backendPost.user_id,
+        title: backendPost.title,
+        content: backendPost.content,
+        timestamp: backendPost.timestamp,
         author: userData.displayName || `User${userId}`,
         replies: 0,
-        likes: 0, // New posts start with 0 likes
+        likes: backendPost.like_count || 0,
         isLiked: false,
         category: selectedCategory,
         tags: extractTagsFromContent(newPostContent),
       };
 
-      setForumPosts([newPost, ...forumPosts]);
+      // Add to the posts list
+      setForumPosts((prevPosts) => [newPost, ...prevPosts]);
+
+      // Reset form
       setNewPostTitle("");
       setNewPostContent("");
       setSelectedCategory("plant-care");
@@ -394,18 +390,18 @@ const ForumScreen = () => {
 
       Alert.alert("Success", "Your post has been published!");
     } catch (error: any) {
-      console.error("Error creating post:", error);
-      console.error("Error details:", error.response?.data); // More detailed error logging
+      console.error("❌ Error creating post:", error);
 
       // Show more specific error message
-      if (error.response?.data?.detail) {
-        Alert.alert(
-          "Validation Error",
-          JSON.stringify(error.response.data.detail)
-        );
-      } else {
-        Alert.alert("Error", "Failed to create post. Please try again.");
+      let errorMessage = "Failed to create post. Please try again.";
+      if (error.message) {
+        errorMessage = error.message;
       }
+      if (error.data?.detail) {
+        errorMessage = JSON.stringify(error.data.detail);
+      }
+
+      Alert.alert("Error", errorMessage);
     } finally {
       setPosting(false);
     }
@@ -599,7 +595,15 @@ const ForumScreen = () => {
           </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.actionButton}>
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() =>
+            Alert.alert(
+              "Coming Soon",
+              "Share feature will be available in the next update!"
+            )
+          }
+        >
           <Ionicons name="share-outline" size={18} color="#666" />
           <Text style={styles.actionText}>Share</Text>
         </TouchableOpacity>
@@ -660,7 +664,11 @@ const ForumScreen = () => {
           </Text>
         </View>
         {userData ? (
-          <TouchableOpacity style={styles.notificationButton}>
+          <TouchableOpacity style={styles.notificationButton}
+          onPress={() => {
+              Alert.alert("Notifications", "No new notifications at this time.");
+            }}
+            >
             <Ionicons name="notifications-outline" size={24} color="white" />
           </TouchableOpacity>
         ) : (

@@ -2,7 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const API_BASE_URL = "https://leaflens-16s1.onrender.com";
 
-// Generic API call function
+// In api.ts - FIX the apiCall return format
 const apiCall = async (endpoint: string, options: RequestInit = {}) => {
   const url = `${API_BASE_URL}${endpoint}`;
 
@@ -29,10 +29,6 @@ const apiCall = async (endpoint: string, options: RequestInit = {}) => {
 
     console.log(
       `🔵 Response status: ${response.status} ${response.statusText}`
-    );
-    console.log(
-      `🔵 Response headers:`,
-      Object.fromEntries(response.headers.entries())
     );
 
     const responseText = await response.text();
@@ -65,7 +61,9 @@ const apiCall = async (endpoint: string, options: RequestInit = {}) => {
     }
 
     console.log(`🟢 Success response:`, responseData);
-    return responseData;
+
+    // FIX: Return the expected format with data property
+    return { data: responseData };
   } catch (error) {
     console.error(`🔴 API call failed: ${endpoint}`, error);
     throw error;
@@ -101,6 +99,7 @@ const apiUpload = async (endpoint: string, formData: FormData) => {
 
 // Authentication API
 export const authAPI = {
+  // In authAPI.register - Fix the return format
   register: async (userData: {
     name: string;
     email: string;
@@ -112,11 +111,10 @@ export const authAPI = {
       password_hash: "[HIDDEN]",
     });
 
-    // The backend expects EXACTLY these fields based on the error:
     const correctPayload = {
       name: userData.name,
       email: userData.email,
-      password_hash: userData.password_hash, // Must be password_hash, not password
+      password_hash: userData.password_hash,
       user_type: userData.user_type || "user",
     };
 
@@ -149,7 +147,9 @@ export const authAPI = {
           };
         }
         console.log("🟢 Registration successful!");
-        return responseData;
+
+        // FIX: Return the same format
+        return { data: responseData };
       } else {
         console.log(
           `🔴 Registration failed with status ${response.status}:`,
@@ -227,6 +227,10 @@ export const usersAPI = {
     apiCall(`/users/${userId}`, {
       method: "DELETE",
     }),
+  // ADD THIS FUNCTION:
+  getUserStats: async (userId: string) => {
+    return apiCall(`/users/${userId}/stats`);
+  },
 };
 
 // Plants API
@@ -284,30 +288,36 @@ export const diseasesAPI = {
     }),
 };
 
-// Forum API
+// Forum API - FIXED version
 export const forumAPI = {
-  getForumPosts: (plant?: string, disease?: string) => {
+  // Get all forum posts
+  getForumPosts: async (plant?: string, disease?: string) => {
     const params = new URLSearchParams();
     if (plant) params.append("plant", plant);
     if (disease) params.append("disease", disease);
 
-    return apiCall(`/forum_posts/?${params.toString()}`);
+    const queryString = params.toString();
+    const url = queryString ? `/forum_posts/?${queryString}` : `/forum_posts/`;
+
+    return apiCall(url);
   },
-  createForumPost: (postData: any) =>
-    apiCall("/forum_posts/", {
+
+  // Create new forum post
+  createForumPost: async (postData: {
+    user_id: number;
+    title: string;
+    content: string;
+  }) => {
+    return apiCall("/forum_posts/", {
       method: "POST",
       body: JSON.stringify(postData),
-    }),
-  getForumPost: (postId: string) => apiCall(`/forum_posts/${postId}`),
-  updateForumPost: (postId: string, postData: any) =>
-    apiCall(`/forum_posts/${postId}`, {
-      method: "PUT",
-      body: JSON.stringify(postData),
-    }),
-  deleteForumPost: (postId: string) =>
-    apiCall(`/forum_posts/${postId}`, {
-      method: "DELETE",
-    }),
+    });
+  },
+
+  // Get single forum post
+  getForumPost: async (postId: number) => {
+    return apiCall(`/forum_posts/${postId}`);
+  },
 
   // Get replies for a post
   getReplies: async (postId: number) => {
@@ -340,11 +350,10 @@ export const forumAPI = {
     });
   },
 
-  // Get user stats (for likes count, etc.)
+  // Get user stats
   getUserStats: async (userId: number) => {
     return apiCall(`/users/${userId}/stats`);
   },
-
 };
 
 // Recommendations API

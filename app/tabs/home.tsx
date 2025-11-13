@@ -8,6 +8,7 @@ import {
   Dimensions,
   FlatList,
   Image,
+  Modal,
   RefreshControl,
   ScrollView,
   Text,
@@ -48,6 +49,12 @@ const Home = () => {
     scansCount: 0,
     postsCount: 0
   });
+
+  // New post modal state
+  const [showNewPostModal, setShowNewPostModal] = useState(false);
+  const [newPostTitle, setNewPostTitle] = useState("");
+  const [newPostContent, setNewPostContent] = useState("");
+  const [posting, setPosting] = useState(false);
 
   const [likingPost, setLikingPost] = useState<number | null>(null);
 
@@ -90,17 +97,15 @@ const Home = () => {
     }
   };
 
-  // Load recent community posts - FIXED: Handle missing like_count
+  // Load recent community posts
   const loadRecentPosts = async () => {
     try {
       const response = await forumAPI.getForumPosts();
       const backendPosts = response.data || [];
       
       console.log('Loaded recent posts:', backendPosts.length);
-      console.log('First post sample:', backendPosts[0]); // Debug log
       
       const transformedPosts = backendPosts.slice(0, 5).map((post: any) => {
-        // FIX: Handle missing like_count - use 0 as default
         const likeCount = post.like_count !== undefined ? post.like_count : 0;
         
         return {
@@ -109,7 +114,7 @@ const Home = () => {
           title: post.title || 'No Title',
           content: post.content?.length > 100 ? post.content.substring(0, 100) + '...' : post.content || 'No content',
           timestamp: post.timestamp ? formatTimestamp(post.timestamp) : 'Recently',
-          likes: likeCount, // Use the actual like_count or default to 0
+          likes: likeCount,
           isLiked: false,
           postId: post.post_id,
           user_id: post.user_id
@@ -119,12 +124,11 @@ const Home = () => {
       setRecentPosts(transformedPosts);
     } catch (error) {
       console.error('Error loading recent posts:', error);
-      // Fallback to mock data with proper structure
       setRecentPosts(getMockRecentPosts());
     }
   };
 
-  // Load user's posts - FIXED: Handle missing like_count
+  // Load user's posts
   const loadYourPosts = async () => {
     if (!userData) {
       setYourPosts([]);
@@ -140,7 +144,6 @@ const Home = () => {
       ).slice(0, 5);
       
       const transformedPosts = userPosts.map((post: any) => {
-        // FIX: Handle missing like_count - use 0 as default
         const likeCount = post.like_count !== undefined ? post.like_count : 0;
         
         return {
@@ -149,7 +152,7 @@ const Home = () => {
           title: post.title || 'No Title',
           content: post.content?.length > 100 ? post.content.substring(0, 100) + '...' : post.content || 'No content',
           timestamp: post.timestamp ? formatTimestamp(post.timestamp) : 'Recently',
-          likes: likeCount, // Use the actual like_count or default to 0
+          likes: likeCount,
           isLiked: false,
           postId: post.post_id,
           user_id: post.user_id
@@ -163,7 +166,67 @@ const Home = () => {
     }
   };
 
-  // Handle like/unlike - UPDATED with real API calls
+  // Handle creating a new post
+  const handleCreatePost = async () => {
+    if (!userData) {
+      Alert.alert("Sign In Required", "Please sign in to create posts");
+      return;
+    }
+
+    if (!newPostTitle.trim() || !newPostContent.trim()) {
+      Alert.alert("Error", "Please fill in both title and content");
+      return;
+    }
+
+    setPosting(true);
+    try {
+      const userId = userData.uid ? parseInt(userData.uid) : userData.id || 1;
+
+      const newPostData = {
+        user_id: userId,
+        title: newPostTitle.trim(),
+        content: newPostContent.trim(),
+      };
+
+      console.log("📤 Creating new post:", newPostData);
+
+      const response = await forumAPI.createForumPost(newPostData);
+      const backendPost = response.data;
+
+      console.log("✅ Post created successfully:", backendPost);
+
+      // Create the new post object for immediate display
+      const newPost: Post = {
+        id: backendPost.post_id,
+        username: userData.displayName || 'You',
+        title: newPostTitle.trim(),
+        content: newPostContent.trim(),
+        timestamp: "Just now",
+        likes: 0,
+        isLiked: false,
+        postId: backendPost.post_id,
+        user_id: userId
+      };
+
+      // Add to both recent posts and your posts
+      setRecentPosts(prev => [newPost, ...prev]);
+      setYourPosts(prev => [newPost, ...prev]);
+
+      // Reset form and close modal
+      setNewPostTitle("");
+      setNewPostContent("");
+      setShowNewPostModal(false);
+
+      Alert.alert("Success", "Your post has been published!");
+    } catch (error: any) {
+      console.error("❌ Error creating post:", error);
+      Alert.alert("Error", "Failed to create post. Please try again.");
+    } finally {
+      setPosting(false);
+    }
+  };
+
+  // Handle like/unlike
   const handleLikePost = async (postId: number, isYourPost: boolean = false) => {
     if (!userData) {
       router.push('/');
@@ -183,7 +246,7 @@ const Home = () => {
           post.postId === postId
             ? {
                 ...post,
-                likes: like_count, // Use the actual count from backend
+                likes: like_count,
                 isLiked: liked,
               }
             : post
@@ -197,7 +260,7 @@ const Home = () => {
             post.postId === postId
               ? {
                   ...post,
-                  likes: like_count, // Use the actual count from backend
+                  likes: like_count,
                   isLiked: liked,
                 }
               : post
@@ -238,7 +301,7 @@ const Home = () => {
     }, 1000);
   };
 
-  // Quick action buttons
+  // Quick action buttons - Updated with Create Post
   const quickActions = [
     {
       id: 1,
@@ -249,24 +312,24 @@ const Home = () => {
     },
     {
       id: 2,
-      icon: "chatbubbles",
-      title: "Community",
+      icon: "create",
+      title: "Create Post",
       color: "#FF9800",
-      route: "/tabs/forum",
+      action: () => setShowNewPostModal(true),
     },
     {
       id: 3,
-      icon: "leaf",
-      title: "My Plants",
+      icon: "chatbubbles",
+      title: "Community",
       color: "#4CAF50",
-      route: "/tabs/plants",
+      route: "/tabs/forum",
     },
     {
       id: 4,
-      icon: "person",
-      title: "Profile",
+      icon: "leaf",
+      title: "My Plants",
       color: "#2196F3",
-      route: "/tabs/profile",
+      route: "/tabs/plants",
     },
   ];
 
@@ -298,12 +361,20 @@ const Home = () => {
     },
   ];
 
-  const handleQuickActionPress = (route: string) => {
-    if (!userData && route !== "/tabs/forum") {
-      router.push('/');
-      return;
+  const handleQuickActionPress = (item: any) => {
+    if (item.action) {
+      if (!userData) {
+        router.push('/');
+        return;
+      }
+      item.action();
+    } else if (item.route) {
+      if (!userData && item.route !== "/tabs/forum") {
+        router.push('/');
+        return;
+      }
+      router.push(item.route);
     }
-    router.push(route);
   };
 
   const handleStatCardPress = (route: string) => {
@@ -323,8 +394,8 @@ const Home = () => {
     }
   };
 
-  // Render post with clickable likes - UPDATED
-  const renderPostItem = ({ item, isYourPost = false }) => (
+  // Render post with clickable likes
+  const renderPostItem = ({ item, isYourPost = false }: { item: Post; isYourPost?: boolean }) => (
     <TouchableOpacity 
       style={styles.postCard}
       onPress={() => router.push('/tabs/forum')}
@@ -356,7 +427,7 @@ const Home = () => {
             />
           )}
           <Text style={[styles.likeCount, item.isLiked && styles.likedText]}>
-            {item.likes || 0} {/* Ensure we show 0 if likes is undefined */}
+            {item.likes || 0}
           </Text>
         </TouchableOpacity>
 
@@ -375,10 +446,10 @@ const Home = () => {
   );
 
   // Render quick action button
-  const renderQuickAction = ({ item }) => (
+  const renderQuickAction = ({ item }: { item: any }) => (
     <TouchableOpacity
       style={[styles.quickAction, { backgroundColor: item.color }]}
-      onPress={() => handleQuickActionPress(item.route)}
+      onPress={() => handleQuickActionPress(item)}
     >
       <Ionicons name={item.icon} size={24} color="white" />
       <Text style={styles.quickActionText}>{item.title}</Text>
@@ -386,7 +457,7 @@ const Home = () => {
   );
 
   // Render stat card
-  const renderStatCard = ({ item }) => (
+  const renderStatCard = ({ item }: { item: any }) => (
     <TouchableOpacity
       style={[styles.statCard, { backgroundColor: item.color }]}
       onPress={() => handleStatCardPress(item.route)}
@@ -532,6 +603,14 @@ const Home = () => {
             <Ionicons name="chatbubble-outline" size={48} color="#ccc" />
             <Text style={styles.emptyText}>No posts yet</Text>
             <Text style={styles.emptySubtext}>Be the first to start a discussion!</Text>
+            {userData && (
+              <TouchableOpacity 
+                style={styles.createPostButton}
+                onPress={() => setShowNewPostModal(true)}
+              >
+                <Text style={styles.createPostText}>Create First Post</Text>
+              </TouchableOpacity>
+            )}
           </View>
         )}
 
@@ -563,7 +642,7 @@ const Home = () => {
                 <Text style={styles.emptySubtext}>Share your plant experiences!</Text>
                 <TouchableOpacity 
                   style={styles.createPostButton}
-                  onPress={() => router.push("/tabs/forum")}
+                  onPress={() => setShowNewPostModal(true)}
                 >
                   <Text style={styles.createPostText}>Create First Post</Text>
                 </TouchableOpacity>
@@ -593,13 +672,80 @@ const Home = () => {
         <View style={styles.bottomSpacing} />
       </ScrollView>
 
+      {/* New Post Modal */}
+      <Modal
+        visible={showNewPostModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowNewPostModal(false)}
+      >
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Create New Post</Text>
+            <TouchableOpacity onPress={() => setShowNewPostModal(false)}>
+              <Ionicons name="close" size={24} color="#333" />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.modalContent}>
+            <Text style={styles.inputLabel}>Title *</Text>
+            <TextInput
+              style={styles.titleInput}
+              placeholder="What's your plant question?"
+              value={newPostTitle}
+              onChangeText={setNewPostTitle}
+              multiline
+              maxLength={100}
+            />
+
+            <Text style={styles.inputLabel}>Content *</Text>
+            <TextInput
+              style={styles.contentInput}
+              placeholder="Describe your plant issue or share your experience..."
+              value={newPostContent}
+              onChangeText={setNewPostContent}
+              multiline
+              numberOfLines={6}
+              textAlignVertical="top"
+              maxLength={1000}
+            />
+          </ScrollView>
+
+          <View style={styles.modalFooter}>
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => setShowNewPostModal(false)}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.postButton,
+                (!newPostTitle.trim() || !newPostContent.trim()) &&
+                  styles.postButtonDisabled,
+              ]}
+              onPress={handleCreatePost}
+              disabled={
+                !newPostTitle.trim() || !newPostContent.trim() || posting
+              }
+            >
+              {posting ? (
+                <ActivityIndicator size="small" color="white" />
+              ) : (
+                <Text style={styles.postButtonText}>Publish Post</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </Modal>
+
       {/* Floating Action Button - Only show if logged in */}
       {userData && (
         <TouchableOpacity
           style={styles.fab}
-          onPress={() => router.push("/tabs/camera")}
+          onPress={() => setShowNewPostModal(true)}
         >
-          <Ionicons name="camera" size={24} color="white" />
+          <Ionicons name="create" size={24} color="white" />
         </TouchableOpacity>
       )}
     </SafeAreaView>

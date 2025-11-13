@@ -21,21 +21,21 @@ import { styles } from "../styles/plantstyle";
 const PLANT_PHOTOS_STORAGE_KEY = "@plant_user_photos";
 
 const PlantsScreen = () => {
-  const [plants, setPlants] = useState([]);
-  const [diseases, setDiseases] = useState([]);
-  const [selectedPlant, setSelectedPlant] = useState(null);
+  const [plants, setPlants] = useState<any[]>([]);
+  const [diseases, setDiseases] = useState<any[]>([]);
+  const [selectedPlant, setSelectedPlant] = useState<any>(null);
   const [showAllDiseases, setShowAllDiseases] = useState(false);
-  const [selectedDisease, setSelectedDisease] = useState(null);
+  const [selectedDisease, setSelectedDisease] = useState<any>(null);
   const [showDiseaseDetails, setShowDiseaseDetails] = useState(false);
   const [showAddPlantModal, setShowAddPlantModal] = useState(false);
   const [showPlantDetails, setShowPlantDetails] = useState(false);
   const [showPhotoSelector, setShowPhotoSelector] = useState(false);
   const [activeFilter, setActiveFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [cameraPhotos, setCameraPhotos] = useState([]);
+  const [cameraPhotos, setCameraPhotos] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
-  const [userData, setUserData] = useState(null);
-  const [plantPhotos, setPlantPhotos] = useState({});
+  const [userData, setUserData] = useState<any>(null);
+  const [plantPhotos, setPlantPhotos] = useState<Record<string, any[]>>({});
 
   // state for new plant form
   const [newPlant, setNewPlant] = useState({
@@ -46,11 +46,21 @@ const PlantsScreen = () => {
 
   // Load user data, plants, diseases, camera photos, and plant photos
   useEffect(() => {
-    loadUserData();
-    loadPlantsFromBackend();
-    loadDiseasesFromBackend();
-    loadCameraPhotos();
-    loadPlantPhotos();
+    const loadInitialData = async () => {
+      try {
+        console.log("🚀 Loading initial data...");
+        await loadUserData();
+        await loadPlantsFromBackend();
+        await loadDiseasesFromBackend();
+        await loadCameraPhotos();
+        await loadPlantPhotos();
+        console.log("✅ All initial data loaded");
+      } catch (error) {
+        console.error("❌ Error loading initial data:", error);
+      }
+    };
+
+    loadInitialData();
   }, []);
 
   // Load user data from AsyncStorage
@@ -87,7 +97,7 @@ const PlantsScreen = () => {
   };
 
   // Save plant photos to storage
-  const savePlantPhotos = async (photos) => {
+  const savePlantPhotos = async (photos: Record<string, any[]>) => {
     try {
       await AsyncStorage.setItem(
         PLANT_PHOTOS_STORAGE_KEY,
@@ -103,22 +113,29 @@ const PlantsScreen = () => {
   // Load plants from backend
   const loadPlantsFromBackend = async () => {
     try {
-      const backendPlants = await plantsAPI.getPlants();
+      console.log("🌿 Loading plants from backend...");
+      const response = await plantsAPI.getPlants();
+      
+      // Handle the response format properly
+      const backendPlants = response.data || response || [];
+      
+      console.log("📥 Raw plants response:", backendPlants);
 
       // Transform backend data to app format
       const transformedPlants = backendPlants.map((plant: any) => ({
-        id: plant.plant_id.toString(),
-        name: plant.name,
-        common_name: plant.common_name,
-        species: plant.species,
+        id: plant.plant_id?.toString() || plant.id?.toString() || Math.random().toString(),
+        name: plant.name || "Unknown Plant",
+        common_name: plant.common_name || plant.name,
+        species: plant.species || "",
         image: require("../../assets/images/imagenotfound.jpg"),
-        backendId: plant.plant_id,
+        backendId: plant.plant_id || plant.id,
       }));
 
+      console.log("✅ Transformed plants:", transformedPlants.length);
       setPlants(transformedPlants);
-      console.log("🌿 Loaded plants from backend:", transformedPlants.length);
     } catch (error) {
-      console.error("Error loading plants from backend:", error);
+      console.error("❌ Error loading plants from backend:", error);
+      // Set empty array instead of crashing
       setPlants([]);
     }
   };
@@ -126,24 +143,28 @@ const PlantsScreen = () => {
   // Load diseases from backend
   const loadDiseasesFromBackend = async () => {
     try {
-      const backendDiseases = await diseasesAPI.getDiseases();
+      console.log("🦠 Loading diseases from backend...");
+      const response = await diseasesAPI.getDiseases();
+      
+      // Handle the response format properly
+      const backendDiseases = response.data || response || [];
+      
+      console.log("📥 Raw diseases response:", backendDiseases);
 
       const transformedDiseases = backendDiseases.map((disease: any) => ({
-        id: disease.disease_id.toString(),
-        name: disease.name,
-        symptoms: disease.symptoms,
-        treatments: disease.treatments,
-        prevention: disease.prevention,
-        backendId: disease.disease_id,
+        id: disease.disease_id?.toString() || disease.id?.toString() || Math.random().toString(),
+        name: disease.name || "Unknown Disease",
+        symptoms: disease.symptoms || "No symptoms information available",
+        treatments: disease.treatments || "No treatment information available",
+        prevention: disease.prevention || "No prevention information available",
+        backendId: disease.disease_id || disease.id,
       }));
 
+      console.log("✅ Transformed diseases:", transformedDiseases.length);
       setDiseases(transformedDiseases);
-      console.log(
-        "🦠 Loaded diseases from backend:",
-        transformedDiseases.length
-      );
     } catch (error) {
-      console.error("Error loading diseases from backend:", error);
+      console.error("❌ Error loading diseases from backend:", error);
+      // Set empty array instead of crashing
       setDiseases([]);
     }
   };
@@ -165,32 +186,36 @@ const PlantsScreen = () => {
     setRefreshing(true);
     console.log("🔄 Refreshing plants and diseases data...");
 
-    // Save current plant photos before refresh
-    const currentPhotos = { ...plantPhotos };
+    try {
+      // Save current plant photos before refresh
+      const currentPhotos = { ...plantPhotos };
 
-    await Promise.all([
-      loadPlantsFromBackend(),
-      loadDiseasesFromBackend(),
-      loadCameraPhotos(),
-    ]);
+      // Load all data in parallel with error handling
+      await Promise.allSettled([
+        loadPlantsFromBackend(),
+        loadDiseasesFromBackend(),
+        loadCameraPhotos(),
+      ]);
 
-    // Restore plant photos after refresh
-    setPlantPhotos(currentPhotos);
-    await savePlantPhotos(currentPhotos);
+      // Restore plant photos after refresh
+      setPlantPhotos(currentPhotos);
+      await savePlantPhotos(currentPhotos);
 
-    setTimeout(() => {
-      setRefreshing(false);
       console.log("✅ Refresh complete");
-    }, 1000);
+    } catch (error) {
+      console.error("❌ Error during refresh:", error);
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   // Get photos for a specific plant
-  const getPlantPhotos = (plantId) => {
+  const getPlantPhotos = (plantId: string) => {
     return plantPhotos[plantId] || [];
   };
 
   // Get selected photo for a plant
-  const getPlantSelectedPhoto = (plantId) => {
+  const getPlantSelectedPhoto = (plantId: string) => {
     const photos = getPlantPhotos(plantId);
     return (
       photos.find((photo) => photo.isSelected) ||
@@ -199,7 +224,7 @@ const PlantsScreen = () => {
   };
 
   // Get the display image for a plant
-  const getPlantDisplayImage = (plant) => {
+  const getPlantDisplayImage = (plant: any) => {
     const selectedPhoto = getPlantSelectedPhoto(plant.id);
     if (selectedPhoto) {
       return { uri: selectedPhoto.uri };
@@ -212,7 +237,7 @@ const PlantsScreen = () => {
   };
 
   // Add photo to a specific plant
-  const addPhotoToPlant = async (plantId, photoUri) => {
+  const addPhotoToPlant = async (plantId: string, photoUri: string) => {
     const newPhoto = {
       id: Date.now().toString(),
       uri: photoUri,
@@ -238,7 +263,7 @@ const PlantsScreen = () => {
   };
 
   // Remove photo from plant
-  const removePhotoFromPlant = async (plantId, photoId) => {
+  const removePhotoFromPlant = async (plantId: string, photoId: string) => {
     const currentPhotos = getPlantPhotos(plantId);
     const updatedPhotos = currentPhotos.filter((photo) => photo.id !== photoId);
 
@@ -267,7 +292,7 @@ const PlantsScreen = () => {
   };
 
   // Set selected photo for a plant
-  const setPlantSelectedPhoto = async (plantId, photoId) => {
+  const setPlantSelectedPhoto = async (plantId: string, photoId: string) => {
     const currentPhotos = getPlantPhotos(plantId);
     const updatedPhotos = currentPhotos.map((photo) => ({
       ...photo,
@@ -286,7 +311,7 @@ const PlantsScreen = () => {
   };
 
   // Assign specific camera photos to a plant
-  const assignPhotosToPlant = async (plantId, selectedPhotos = null) => {
+  const assignPhotosToPlant = async (plantId: string, selectedPhotos: any[] | null = null) => {
     const photosToAdd = selectedPhotos || cameraPhotos;
 
     if (photosToAdd.length === 0) {
@@ -321,7 +346,7 @@ const PlantsScreen = () => {
   };
 
   // Select specific photos from camera
-  const selectPhotosForPlant = (plantId) => {
+  const selectPhotosForPlant = (plantId: string) => {
     if (cameraPhotos.length === 0) {
       Alert.alert("No Photos", "Take some photos in the camera first!");
       return;
@@ -339,28 +364,39 @@ const PlantsScreen = () => {
     }
 
     try {
+      console.log("🟡 Creating new plant:", newPlant);
+      
       // Create plant in backend
-      const backendPlant = await plantsAPI.createPlant({
-        name: newPlant.name,
-        common_name: newPlant.common_name || newPlant.name,
-        species: newPlant.species || "",
+      const response = await plantsAPI.createPlant({
+        name: newPlant.name.trim(),
+        common_name: newPlant.common_name?.trim() || newPlant.name.trim(),
+        species: newPlant.species?.trim() || "",
       });
 
+      // Handle the response format
+      const backendPlant = response.data || response;
+      
+      if (!backendPlant) {
+        throw new Error("No response from server");
+      }
+
       const plant = {
-        id: backendPlant.plant_id.toString(),
-        name: newPlant.name,
-        common_name: newPlant.common_name || newPlant.name,
-        species: newPlant.species || "",
+        id: backendPlant.plant_id?.toString() || backendPlant.id?.toString() || Math.random().toString(),
+        name: newPlant.name.trim(),
+        common_name: newPlant.common_name?.trim() || newPlant.name.trim(),
+        species: newPlant.species?.trim() || "",
         image: require("../../assets/images/imagenotfound.jpg"),
-        backendId: backendPlant.plant_id,
+        backendId: backendPlant.plant_id || backendPlant.id,
       };
 
-      setPlants([plant, ...plants]);
+      console.log("✅ Created plant:", plant);
+      
+      setPlants(prev => [plant, ...prev]);
       setNewPlant({ name: "", common_name: "", species: "" });
       setShowAddPlantModal(false);
       Alert.alert("Success", `${plant.name} added to your collection!`);
     } catch (error) {
-      console.error("Error adding plant:", error);
+      console.error("❌ Error adding plant:", error);
       Alert.alert("Error", "Failed to add plant. Please try again.");
     }
   };
@@ -405,7 +441,7 @@ const PlantsScreen = () => {
   };
 
   // Show disease details
-  const handleShowDisease = (disease) => {
+  const handleShowDisease = (disease: any) => {
     setSelectedDisease(disease);
     setShowDiseaseDetails(true);
   };
@@ -431,7 +467,7 @@ const PlantsScreen = () => {
   });
 
   // Render each plant card in the grid
-  const renderPlantCard = ({ item }) => {
+  const renderPlantCard = ({ item }: { item: any }) => {
     const plantPhotos = getPlantPhotos(item.id);
     const selectedPhoto = getPlantSelectedPhoto(item.id);
 
@@ -497,7 +533,7 @@ const PlantsScreen = () => {
   };
 
   // Render disease card
-  const renderDiseaseCard = ({ item }) => (
+  const renderDiseaseCard = ({ item }: { item: any }) => (
     <TouchableOpacity
       style={styles.diseaseCard}
       onPress={() => handleShowDisease(item)}
@@ -519,7 +555,7 @@ const PlantsScreen = () => {
   );
 
   // Render user photo in gallery
-  const renderUserPhoto = ({ item }) => (
+  const renderUserPhoto = ({ item }: { item: any }) => (
     <TouchableOpacity
       style={styles.photoItem}
       onPress={() => setPlantSelectedPhoto(selectedPlant.id, item.id)}
@@ -546,7 +582,7 @@ const PlantsScreen = () => {
   );
 
   // Render camera photo for selection
-  const renderCameraPhoto = ({ item }) => (
+  const renderCameraPhoto = ({ item }: { item: any }) => (
     <TouchableOpacity
       style={[
         styles.cameraPhotoItem,
@@ -565,7 +601,7 @@ const PlantsScreen = () => {
   );
 
   // Toggle photo selection in photo selector
-  const togglePhotoSelection = (photoId) => {
+  const togglePhotoSelection = (photoId: string) => {
     setCameraPhotos(
       cameraPhotos.map((photo) =>
         photo.id === photoId ? { ...photo, selected: !photo.selected } : photo
