@@ -24,6 +24,8 @@ from utils import load_model
 from filter_modules import normalize_species_name, filter_disease_predictions
 from disease_classes import disease_classes
 from mapping import species_to_diseases
+from disease_name_map import MODEL_TO_DB_DISEASE
+
 
 
 Base.metadata.create_all(bind=engine)
@@ -391,11 +393,10 @@ async def predict_species_and_disease_batch(
     # create a scan entry using diseaseID that was found
     # link the scan to scan/image to upload the image
 
+    raw_name = disease_predictions[0]["disease"]
+    mapped_name = MODEL_TO_DB_DISEASE.get(raw_name)
 
-    top_disease_name = disease_predictions[0]["disease"] if disease_predictions else None
-    top_confidence = disease_predictions[0]["confidence"] if disease_predictions else 0
-
-    db_disease = db.query(models.Disease).filter(models.Disease.name == top_disease_name).first()
+    db_disease = db.query(models.Disease).filter(models.Disease.name == mapped_name).first()
     disease_id = db_disease.disease_id if db_disease else None
 
 
