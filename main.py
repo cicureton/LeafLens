@@ -392,30 +392,101 @@ async def predict_species_and_disease_batch(
     # link the scan to scan/image to upload the image
 
 
-    top_disease_name = disease_predictions[0]["disease"] if disease_predictions else None
-    top_confidence = disease_predictions[0]["confidence"] if disease_predictions else 0
+    # --- COMPLETE THE "NEXT STEP" - Connect predictions to database ---
 
-    db_disease = db.query(models.Disease).filter(models.Disease.name == top_disease_name).first()
-    disease_id = db_disease.disease_id if db_disease else None
+# Get top predictions
+top_species_name = species_predictions[0]["species"] if species_predictions else None
+top_disease_name = disease_predictions[0]["disease"] if disease_predictions else None
+top_confidence = disease_predictions[0]["confidence"] if disease_predictions else 0
 
+print(f"🔍 Top Species: {top_species_name}")
+print(f"🔍 Top Disease: {top_disease_name}")
+print(f"🔍 Confidence: {top_confidence}")
 
-    new_scan = models.Scan(
+# 1. Connect returned disease to disease in database
+disease_id = None
+if top_disease_name:
+    db_disease = db.query(models.Disease).filter(
+        func.lower(models.Disease.name) == func.lower(top_disease_name)
+    ).first()
+    
+    if db_disease:
+        disease_id = db_disease.disease_id
+        print(f"🟢 Found disease in database: {top_disease_name} -> ID: {disease_id}")
+    else:
+        print(f"🟡 Disease not found in database: {top_disease_name}")
+
+# 2. Connect returned species to plant in database (optional but useful)
+plant_id = None
+if top_species_name:
+    db_plant = db.query(models.Plant).filter(
+        func.lower(models.Plant.species) == func.lower(top_species_name)
+    ).first()
+    
+    if not db_plant:
+        # Try common name
+        db_plant = db.query(models.Plant).filter(
+            func.lower(models.Plant.common_name) == func.lower(top_species_name)
+        ).first()
+    
+    if not db_plant:
+        # Try plant name
+        db_plant = db.query(models.Plant).filter(
+            func.lower(models.Plant.name) == func.lower(top_species_name)
+        ).first()
+    
+    if db_plant:
+        plant_id = db_plant.plant_id
+        print(f"🟢 Found plant in database: {top_species_name} -> ID: {plant_id}")
+    else:
+        print(f"🟡 Plant not found in database: {top_species_name}")
+
+# 3. Create a scan entry using diseaseID that was found
+new_scan = models.Scan(
     user_id=user_id,    
-    plant_id=None,  # optional: set if known
-    disease_id=disease_id,
+    plant_id=plant_id,  # Will be None if no plant matched
+    disease_id=disease_id,  # Will be None if no disease matched
     confidence_score=top_confidence
+)
+db.add(new_scan)
+db.commit()
+db.refresh(new_scan)
+scan_id = new_scan.scan_id
+
+print(f"🟢 Created scan entry - ID: {scan_id}, Disease ID: {disease_id}, Plant ID: {plant_id}")
+
+# 4. Link the scan to scan/image to upload the image
+for file in files:
+    # Save the uploaded file
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+    file_path = os.path.join(UPLOAD_DIR, file.filename)
+    
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+    
+    # Create scan image record linked to the scan
+    new_scan_image = models.ScanImage(
+        scan_id=scan_id,
+        image_path=file_path
     )
-    db.add(new_scan)
-    db.commit()
-    db.refresh(new_scan)
-    scan_id = new_scan.scan_id
+    db.add(new_scan_image)
+    print(f"📸 Linked image to scan: {file.filename} -> Scan ID: {scan_id}")
 
+db.commit()
 
-    return JSONResponse({
-        "scan_id": scan_id,
-        "species_predictions": species_predictions,
-        "disease_predictions": disease_predictions
-    })
+print(f"✅ COMPLETED: Scan {scan_id} created with {len(files)} images")
+
+return JSONResponse({
+    "scan_id": scan_id,
+    "plant_id": plant_id,
+    "disease_id": disease_id,
+    "species_predictions": species_predictions,
+    "disease_predictions": disease_predictions,
+    "database_linked": {
+        "plant_linked": plant_id is not None,
+        "disease_linked": disease_id is not None
+    }
+})
 
 @app.post("/forum_posts/{post_id}/replies", response_model=schemas.ForumReplyResponse)
 def create_forum_reply(post_id: int, reply: schemas.ForumReplyCreate, db: Session = Depends(get_db)):
