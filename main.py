@@ -71,6 +71,29 @@ def get_user(user_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="User not found")
     return user
 
+@app.put("/users/{user_id}", response_model=schemas.UserResponse)
+def update_user(user_id: int, user_update: schemas.UserCreate, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.user_id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    for key, value in user_update.dict().items():
+        setattr(user, key, value)
+
+    db.commit()
+    db.refresh(user)
+    return user
+
+@app.delete("/users/{user_id}")
+def delete_user(user_id: int, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.user_id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    db.delete(user)
+    db.commit()
+    return {"detail": "User deleted successfully"}
+
 @app.post("/plants/", response_model=schemas.PlantResponse)
 def create_plant(plant: schemas.PlantCreate, db: Session = Depends(get_db)):
     new_plant = models.Plant(**plant.dict())
@@ -144,7 +167,19 @@ def get_scans(
         query = query.filter(models.Scan.plant_id == plant_id)
     return query.all()
 
+
 UPLOAD_DIR = "uploads"
+
+@app.delete("/scans/{scan_id}")
+def delete_scan(scan_id: int, db: Session = Depends(get_db)):
+    scan = db.query(models.Scan).filter(models.Scan.scan_id == scan_id).first()
+    if not scan:
+        raise HTTPException(status_code=404, detail="Scan not found")
+
+    db.delete(scan)
+    db.commit()
+    return {"detail": "Scan deleted successfully"}
+
 
 @app.post("/scan_images/", response_model=schemas.ScanImageResponse)
 def create_scan_image(
@@ -213,6 +248,29 @@ def get_forum_posts(
         post.like_count = like_count
 
     return posts
+
+@app.put("/forum_posts/{post_id}", response_model=schemas.ForumPostResponse)
+def update_forum_post(post_id: int, update_data: schemas.ForumPostCreate, db: Session = Depends(get_db)):
+    post = db.query(models.ForumPost).filter(models.ForumPost.post_id == post_id).first()
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+
+    post.title = update_data.title
+    post.content = update_data.content
+    db.commit()
+    db.refresh(post)
+    return post
+
+@app.delete("/forum_posts/{post_id}")
+def delete_forum_post(post_id: int, db: Session = Depends(get_db)):
+    post = db.query(models.ForumPost).filter(models.ForumPost.post_id == post_id).first()
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+
+    db.delete(post)
+    db.commit()
+    return {"detail": "Post deleted successfully"}
+
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
