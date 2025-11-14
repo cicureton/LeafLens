@@ -398,10 +398,11 @@ async def predict_species_and_disease_batch(
 
     db_disease = db.query(models.Disease).filter(models.Disease.name == mapped_name).first()
     disease_id = db_disease.disease_id if db_disease else None
+    top_confidence = disease_predictions[0]["confidence"]
 
 
     new_scan = models.Scan(
-    user_id=user_id,    
+    user_id=user_id,
     plant_id=None,  # optional: set if known
     disease_id=disease_id,
     confidence_score=top_confidence
