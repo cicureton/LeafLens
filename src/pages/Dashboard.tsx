@@ -6,10 +6,11 @@ interface Stats {
   plants: number;
   diseases: number;
   scans: number;
+  posts: number;  // Add posts count
 }
 
 const Dashboard: React.FC = () => {
-  const [stats, setStats] = useState<Stats>({ users: 0, plants: 0, diseases: 0, scans: 0 });
+  const [stats, setStats] = useState<Stats>({ users: 0, plants: 0, diseases: 0, scans: 0, posts: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -18,11 +19,12 @@ const Dashboard: React.FC = () => {
 
   const fetchStats = async () => {
     try {
-      const [usersRes, plantsRes, diseasesRes, scansRes] = await Promise.all([
+      const [usersRes, plantsRes, diseasesRes, scansRes, forumPostsRes] = await Promise.all([
         adminAPI.getUsers(),
         adminAPI.getPlants(),
         adminAPI.getDiseases(),
         adminAPI.getScans(),
+        adminAPI.getForumPosts(),  // Add forum posts API call
       ]);
 
       setStats({
@@ -30,6 +32,7 @@ const Dashboard: React.FC = () => {
         plants: plantsRes.data?.length || 0,
         diseases: diseasesRes.data?.length || 0,
         scans: scansRes.data?.length || 0,
+        posts: forumPostsRes.data?.length || 0,  // Add posts count
       });
     } catch (error) {
       console.error('Error fetching stats:', error);
@@ -81,6 +84,14 @@ const Dashboard: React.FC = () => {
             <p>Total Scans</p>
           </div>
         </div>
+
+        <div className="stat-card">
+          <div className="stat-icon">💬</div>
+          <div className="stat-info">
+            <h3>{stats.posts}</h3>
+            <p>Forum Posts</p>
+          </div>
+        </div>
       </div>
 
       {/* Recent Activity Section */}
@@ -112,10 +123,10 @@ const Dashboard: React.FC = () => {
           </div>
           
           <div className="activity-card">
-            <div className="activity-icon">🏥</div>
+            <div className="activity-icon">💬</div>
             <div className="activity-info">
-              <h4>Disease Library</h4>
-              <p>{stats.diseases} diseases tracked</p>
+              <h4>Community Forum</h4>
+              <p>{stats.posts} forum posts</p>
             </div>
           </div>
         </div>

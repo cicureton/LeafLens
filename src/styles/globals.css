@@ -5,12 +5,12 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
-    sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif;
   background-color: #f5f5f5;
   color: #333;
 }
 
+/* ===== UTILITY CLASSES ===== */
 .loading {
   text-align: center;
   padding: 40px;
@@ -37,7 +37,20 @@ body {
   margin-top: 10px;
 }
 
-/* Dashboard Styles */
+/* ===== LAYOUT & TYPOGRAPHY ===== */
+.page-header {
+  margin-bottom: 30px;
+}
+
+.page-header h1 {
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.page-header p {
+  color: #666;
+}
+
 .dashboard-header {
   margin-bottom: 30px;
 }
@@ -51,6 +64,7 @@ body {
   color: #666;
 }
 
+/* ===== CARDS & GRIDS ===== */
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -83,20 +97,7 @@ body {
   margin: 0;
 }
 
-/* Table Styles */
-.page-header {
-  margin-bottom: 30px;
-}
-
-.page-header h1 {
-  color: #333;
-  margin-bottom: 10px;
-}
-
-.page-header p {
-  color: #666;
-}
-
+/* ===== TABLES ===== */
 .table-container {
   background: white;
   border-radius: 10px;
@@ -122,7 +123,11 @@ body {
   color: #333;
 }
 
-/* Badges */
+.data-table tr:hover {
+  background-color: #f8f9fa;
+}
+
+/* ===== BADGES ===== */
 .badge {
   padding: 4px 8px;
   border-radius: 12px;
@@ -130,7 +135,6 @@ body {
   font-weight: 600;
 }
 
-/* Badge Styles for new user roles */
 .badge-user {
   background: #28a745;
   color: white;
@@ -151,14 +155,53 @@ body {
   color: white;
 }
 
-/* Action Buttons */
+.plant-badge,
+.disease-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.plant-badge.identified,
+.disease-badge.identified {
+  background: #28a745;
+  color: white;
+}
+
+.plant-badge.unknown,
+.disease-badge.unknown {
+  background: #6c757d;
+  color: white;
+}
+
+.user-badge {
+  padding: 4px 8px;
+  background: #3498db;
+  color: white;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.likes-count {
+  padding: 4px 8px;
+  background: #e74c3c;
+  color: white;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* ===== BUTTONS ===== */
 .action-buttons {
   display: flex;
   gap: 8px;
 }
 
 .btn-edit,
-.btn-delete {
+.btn-delete,
+.btn-view {
   padding: 6px 12px;
   border: none;
   border-radius: 4px;
@@ -185,7 +228,55 @@ body {
   background-color: #c82333;
 }
 
-/* Modal Styles */
+.btn-view {
+  background-color: #3498db;
+  color: white;
+  margin-right: 5px;
+}
+
+.btn-view:hover {
+  background-color: #2980b9;
+}
+
+.btn-primary {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.btn-primary:hover {
+  background-color: #0056b3;
+}
+
+.btn-secondary {
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.btn-secondary:hover {
+  background-color: #545b62;
+}
+
+/* Button focus states for accessibility */
+.btn-edit:focus,
+.btn-delete:focus,
+.btn-view:focus,
+.btn-primary:focus,
+.btn-secondary:focus {
+  outline: 2px solid #007bff;
+  outline-offset: 2px;
+}
+
+/* ===== MODALS ===== */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -248,68 +339,7 @@ body {
   margin-top: 24px;
 }
 
-.btn-primary {
-  background-color: #007bff;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.btn-primary:hover {
-  background-color: #0056b3;
-}
-
-.btn-secondary {
-  background-color: #6c757d;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.btn-secondary:hover {
-  background-color: #545b62;
-}
-
-/* Hover effects for table rows */
-.data-table tr:hover {
-  background-color: #f8f9fa;
-}
-
-/* Responsive table actions */
-@media (max-width: 768px) {
-  .action-buttons {
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  .btn-edit,
-  .btn-delete {
-    font-size: 11px;
-    padding: 4px 8px;
-  }
-
-  .data-table th:nth-child(1),
-  .data-table td:nth-child(1) {
-    display: none;
-  }
-}
-
-/* Button focus states for accessibility */
-.btn-edit:focus,
-.btn-delete:focus,
-.btn-primary:focus,
-.btn-secondary:focus {
-  outline: 2px solid #007bff;
-  outline-offset: 2px;
-}
-
-/* Scans Page Styles */
+/* ===== FILTERS & SEARCH ===== */
 .filters-section {
   display: flex;
   justify-content: space-between;
@@ -339,35 +369,34 @@ body {
   font-size: 14px;
 }
 
-.scan-stats {
+.search-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.search-group label {
+  font-weight: 600;
+  color: #555;
+}
+
+.search-group input {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  min-width: 250px;
+}
+
+.scan-stats,
+.posts-stats {
   display: flex;
   gap: 15px;
   font-weight: 600;
   color: #666;
 }
 
-/* Badge Styles for Scans */
-.plant-badge,
-.disease-badge {
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.plant-badge.identified,
-.disease-badge.identified {
-  background: #28a745;
-  color: white;
-}
-
-.plant-badge.unknown,
-.disease-badge.unknown {
-  background: #6c757d;
-  color: white;
-}
-
-/* Confidence Score Styles */
+/* ===== SCAN SPECIFIC STYLES ===== */
 .confidence-score {
   padding: 4px 8px;
   border-radius: 12px;
@@ -393,7 +422,15 @@ body {
   background: #6c757d;
 }
 
-/* Table Responsive Styles */
+/* ===== FORUM POSTS SPECIFIC ===== */
+.content-preview {
+  max-width: 200px;
+  color: #666;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+/* ===== RESPONSIVE DESIGN ===== */
 @media (max-width: 768px) {
   .filters-section {
     flex-direction: column;
@@ -405,13 +442,60 @@ body {
     justify-content: space-between;
   }
 
-  .data-table th:nth-child(1),
-  .data-table td:nth-child(1) {
-    display: none;
+  .search-group {
+    width: 100%;
   }
 
+  .search-group input {
+    min-width: auto;
+    width: 100%;
+  }
+
+  .action-buttons {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .btn-edit,
+  .btn-delete,
+  .btn-view {
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+
+  /* Hide columns on mobile */
+  .data-table th:nth-child(1),
+  .data-table td:nth-child(1),
   .data-table th:nth-child(6),
   .data-table td:nth-child(6) {
     display: none;
+  }
+
+  .content-preview {
+    max-width: 150px;
+  }
+}
+
+@media (max-width: 480px) {
+  .data-table th:nth-child(4),
+  .data-table td:nth-child(4) {
+    display: none;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stat-card {
+    padding: 15px;
+  }
+
+  .stat-icon {
+    font-size: 32px;
+    margin-right: 12px;
+  }
+
+  .stat-info h3 {
+    font-size: 24px;
   }
 }

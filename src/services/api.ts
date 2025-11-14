@@ -35,6 +35,7 @@ export const adminAPI = {
   
   // Forum Posts
   getForumPosts: () => api.get('/forum_posts'),
+  deleteForumPost: (postId: number) => api.delete(`/forum_posts/${postId}`),
 };
 
 export default api;

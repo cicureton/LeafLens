@@ -7,6 +7,7 @@ import Plants from './pages/Plants';
 import Diseases from './pages/Diseases';
 import Login from './pages/Login';
 import Scans from './pages/Scans';
+import ForumPosts from './pages/ForumPosts';
 import './styles/globals.css';
 
 function App() {
@@ -20,6 +21,8 @@ function App() {
           <Route path="/diseases" element={<Layout><Diseases /></Layout>} />
           <Route path="/plants" element={<Layout><Plants /></Layout>} />
           <Route path="/scans" element={<Layout><Scans /></Layout>} />
+          <Route path="/forum-posts" element={<Layout><ForumPosts /></Layout>} />
+
 
         </Routes>
       </div>
