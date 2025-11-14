@@ -5,7 +5,8 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
+    sans-serif;
   background-color: #f5f5f5;
   color: #333;
 }
@@ -61,7 +62,7 @@ body {
   background: white;
   padding: 20px;
   border-radius: 10px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   display: flex;
   align-items: center;
 }
@@ -100,7 +101,7 @@ body {
   background: white;
   border-radius: 10px;
   overflow: hidden;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
 .data-table {
@@ -129,12 +130,288 @@ body {
   font-weight: 600;
 }
 
+/* Badge Styles for new user roles */
+.badge-user {
+  background: #28a745;
+  color: white;
+}
+
+.badge-farmer {
+  background: #fd7e14;
+  color: white;
+}
+
+.badge-gardener {
+  background: #20c997;
+  color: white;
+}
+
 .badge-admin {
   background: #dc3545;
   color: white;
 }
 
-.badge-user {
+/* Action Buttons */
+.action-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-edit,
+.btn-delete {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s;
+}
+
+.btn-edit {
+  background-color: #007bff;
+  color: white;
+}
+
+.btn-edit:hover {
+  background-color: #0056b3;
+}
+
+.btn-delete {
+  background-color: #dc3545;
+  color: white;
+}
+
+.btn-delete:hover {
+  background-color: #c82333;
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: white;
+  padding: 24px;
+  border-radius: 10px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.modal h2 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: bold;
+  color: #555;
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+
+.btn-primary {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.btn-primary:hover {
+  background-color: #0056b3;
+}
+
+.btn-secondary {
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.btn-secondary:hover {
+  background-color: #545b62;
+}
+
+/* Hover effects for table rows */
+.data-table tr:hover {
+  background-color: #f8f9fa;
+}
+
+/* Responsive table actions */
+@media (max-width: 768px) {
+  .action-buttons {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .btn-edit,
+  .btn-delete {
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+
+  .data-table th:nth-child(1),
+  .data-table td:nth-child(1) {
+    display: none;
+  }
+}
+
+/* Button focus states for accessibility */
+.btn-edit:focus,
+.btn-delete:focus,
+.btn-primary:focus,
+.btn-secondary:focus {
+  outline: 2px solid #007bff;
+  outline-offset: 2px;
+}
+
+/* Scans Page Styles */
+.filters-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 15px;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.filter-group label {
+  font-weight: 600;
+  color: #555;
+}
+
+.filter-group select {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.scan-stats {
+  display: flex;
+  gap: 15px;
+  font-weight: 600;
+  color: #666;
+}
+
+/* Badge Styles for Scans */
+.plant-badge,
+.disease-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.plant-badge.identified,
+.disease-badge.identified {
   background: #28a745;
   color: white;
+}
+
+.plant-badge.unknown,
+.disease-badge.unknown {
+  background: #6c757d;
+  color: white;
+}
+
+/* Confidence Score Styles */
+.confidence-score {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: white;
+}
+
+.confidence-score.high {
+  background: #28a745;
+}
+
+.confidence-score.medium {
+  background: #ffc107;
+  color: black;
+}
+
+.confidence-score.low {
+  background: #dc3545;
+}
+
+.confidence-score.unknown {
+  background: #6c757d;
+}
+
+/* Table Responsive Styles */
+@media (max-width: 768px) {
+  .filters-section {
+    flex-direction: column;
+    gap: 15px;
+    align-items: stretch;
+  }
+
+  .filter-group {
+    justify-content: space-between;
+  }
+
+  .data-table th:nth-child(1),
+  .data-table td:nth-child(1) {
+    display: none;
+  }
+
+  .data-table th:nth-child(6),
+  .data-table td:nth-child(6) {
+    display: none;
+  }
 }

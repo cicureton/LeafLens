@@ -14,6 +14,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { path: '/users', label: 'Users', icon: '👥' },
     { path: '/plants', label: 'Plants', icon: '🌿' },
     { path: '/diseases', label: 'Diseases', icon: '🦠' },
+    { path: '/scans', label: 'Scans', icon: '🔍' },
   ];
 
   return (
@@ -23,8 +24,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <h2>🌿 LeafLens Admin</h2>
           <div className="user-info">
             <span>Administrator</span>
+            <small>admin@leaflens.com</small>
           </div>
-          <small>admin@leaflens.com</small>
         </div>
         
         <nav className="sidebar-nav">
