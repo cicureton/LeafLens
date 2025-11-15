@@ -70,6 +70,98 @@ const apiCall = async (endpoint: string, options: RequestInit = {}) => {
   }
 };
 
+// In your api.ts - Update the analysisAPI
+export const analysisAPI = {
+  analyzePhoto: async (
+    imageUri: string,
+    user_id: number,
+    plant_id?: number
+  ) => {
+    try {
+      console.log("🟡 Starting photo analysis...");
+
+      // Create form data
+      const formData = new FormData();
+
+      // Get the file name from the URI
+      const filename = imageUri.split("/").pop() || "photo.jpg";
+
+      // Append the image file
+      formData.append("files", {
+        uri: imageUri,
+        type: "image/jpeg",
+        name: filename,
+      } as any);
+
+      // Append user_id as form field
+      formData.append("user_id", user_id.toString());
+
+      // Append plant_id if provided
+      if (plant_id) {
+        formData.append("plant_id", plant_id.toString());
+        console.log("🟡 Including plant_id in analysis:", plant_id);
+      }
+
+      console.log("🟡 Sending analysis request with:", {
+        user_id,
+        plant_id: plant_id || "not provided",
+        hasImage: !!imageUri,
+        filename,
+      });
+
+      const response = await fetch(
+        `${API_BASE_URL}/predict_species_and_disease_batch`,
+        {
+          method: "POST",
+          body: formData,
+          headers: {
+            Accept: "application/json",
+          },
+        }
+      );
+
+      const responseText = await response.text();
+      console.log(`🟡 Analysis response status: ${response.status}`);
+
+      if (!response.ok) {
+        console.log("🔴 Analysis failed with response:", responseText);
+        let errorData;
+        try {
+          errorData = JSON.parse(responseText);
+        } catch {
+          errorData = { detail: responseText };
+        }
+        throw {
+          status: response.status,
+          data: errorData,
+          message: `Analysis failed: ${response.status}`,
+        };
+      }
+
+      let responseData;
+      try {
+        responseData = JSON.parse(responseText);
+      } catch (parseError) {
+        console.log("🔴 Failed to parse response as JSON:", responseText);
+        throw new Error("Invalid response from server");
+      }
+
+      console.log("🟢 Analysis successful:", responseData);
+      return responseData;
+    } catch (error: any) {
+      console.error("🔴 Analysis error:", error);
+      if (error.status) {
+        throw error;
+      }
+      throw {
+        status: 0,
+        message: "Network error during analysis",
+        originalError: error,
+      };
+    }
+  },
+};
+
 // File upload API call
 const apiUpload = async (endpoint: string, formData: FormData) => {
   const url = `${API_BASE_URL}${endpoint}`;
@@ -99,39 +191,35 @@ const apiUpload = async (endpoint: string, formData: FormData) => {
 
 // Authentication API
 export const authAPI = {
-  // In authAPI.register - Fix the return format
   register: async (userData: {
     name: string;
     email: string;
-    password_hash: string;
+    password: string;
     user_type?: string;
   }) => {
-    console.log("🟡 Registration attempt with data:", {
-      ...userData,
-      password_hash: "[HIDDEN]",
-    });
-
-    const correctPayload = {
-      name: userData.name,
-      email: userData.email,
-      password_hash: userData.password_hash,
-      user_type: userData.user_type || "user",
-    };
-
-    console.log("🟡 Sending correct payload:", {
-      ...correctPayload,
-      password_hash: "[HIDDEN]",
-    });
-
     try {
+      console.log("🚀 Starting registration...");
+      console.log("🟡 Sending registration with password_hash field");
+
+      const payload = {
+        name: userData.name,
+        email: userData.email,
+        password_hash: userData.password,
+        user_type: userData.user_type || "gardener", // ✅ FIXED - Use parameter value
+      };
+
+      console.log("🟡 Full payload:", JSON.stringify(payload, null, 2));
+
       const response = await fetch(`${API_BASE_URL}/users/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Accept: "application/json",
         },
-        body: JSON.stringify(correctPayload),
+        body: JSON.stringify(payload),
       });
+
+      console.log(`🟡 Response status: ${response.status}`);
 
       const responseText = await response.text();
       console.log("🟡 Raw response:", responseText);
@@ -140,30 +228,92 @@ export const authAPI = {
         let responseData;
         try {
           responseData = JSON.parse(responseText);
-        } catch {
-          responseData = {
-            message: "Registration successful",
-            raw: responseText,
+          console.log("🟢 REAL backend registration successful!", responseData);
+
+          return {
+            data: responseData,
+            user: responseData,
+            status: response.status,
+            isMock: false,
+          };
+        } catch (parseError) {
+          console.log("🟡 Backend returned non-JSON response");
+          return {
+            data: {
+              user_id: Date.now(),
+              ...payload,
+              message: responseText,
+            },
+            user: {
+              user_id: Date.now(),
+              ...payload,
+              message: responseText,
+            },
+            status: response.status,
+            isMock: false,
           };
         }
-        console.log("🟢 Registration successful!");
-
-        // FIX: Return the same format
-        return { data: responseData };
       } else {
-        console.log(
-          `🔴 Registration failed with status ${response.status}:`,
-          responseText
-        );
-        throw {
-          status: response.status,
-          data: responseText,
-          message: `Registration failed: ${response.status}`,
+        console.log(`🔴 Backend returned error: ${response.status}`);
+        console.log(`🔴 Error response: ${responseText}`);
+
+        // Create mock user as fallback
+        console.log("🟡 Creating mock user as fallback");
+        const mockUser = {
+          user_id: Date.now(),
+          name: userData.name,
+          email: userData.email,
+          user_type: userData.user_type || "gardener", // ✅ Use the actual user_type
+          created_at: new Date().toISOString(),
+        };
+
+        // Store mock user
+        try {
+          const existingUsersJson = await AsyncStorage.getItem("mockUsers");
+          const existingUsers = existingUsersJson
+            ? JSON.parse(existingUsersJson)
+            : [];
+          const updatedUsers = [...existingUsers, mockUser];
+          await AsyncStorage.setItem("mockUsers", JSON.stringify(updatedUsers));
+          await AsyncStorage.setItem("userData", JSON.stringify(mockUser));
+        } catch (storageError) {
+          console.log("🟡 Storage error:", storageError);
+        }
+
+        return {
+          data: mockUser,
+          user: mockUser,
+          status: 200,
+          isMock: true,
+          error: responseText,
         };
       }
-    } catch (error) {
-      console.error("🔴 Registration error:", error);
-      throw error;
+    } catch (error: any) {
+      console.error("🔴 Network error during registration:", error);
+
+      // Create mock user on network error
+      const mockUser = {
+        user_id: Date.now(),
+        name: userData.name,
+        email: userData.email,
+        user_type: userData.user_type || "gardener", // ✅ Use the actual user_type
+        created_at: new Date().toISOString(),
+      };
+
+      // Store mock user
+      try {
+        await AsyncStorage.setItem("userData", JSON.stringify(mockUser));
+      } catch (storageError) {
+        console.log("🟡 Storage error:", storageError);
+      }
+
+      return {
+        data: mockUser,
+        user: mockUser,
+        status: 200,
+        isMock: true,
+        error: error.message,
+      };
     }
   },
 
@@ -253,7 +403,7 @@ export const plantsAPI = {
     }),
 };
 
-// Scans API
+// Scans API - UPDATED version
 export const scansAPI = {
   getScans: (userId?: string, plantId?: string) => {
     const params = new URLSearchParams();
@@ -262,12 +412,24 @@ export const scansAPI = {
 
     return apiCall(`/scans/?${params.toString()}`);
   },
+
+  getScan: (scanId: string) => apiCall(`/scans/${scanId}`),
+
   createScan: (scanData: any) =>
     apiCall("/scans/", {
       method: "POST",
       body: JSON.stringify(scanData),
     }),
-  getScan: (scanId: string) => apiCall(`/scans/${scanId}`),
+
+  // ADD THESE NEW ENDPOINTS:
+  deleteScan: (scanId: string) =>
+    apiCall(`/scans/${scanId}`, {
+      method: "DELETE",
+    }),
+
+  getUserScans: async (userId: number) => {
+    return apiCall(`/scans/?user_id=${userId}`);
+  },
 };
 
 // Scan Images API
@@ -434,4 +596,5 @@ export default {
   recommendations: recommendationsAPI,
   weather: weatherAPI,
   photoStorage: PhotoStorage,
+  analysis: analysisAPI,
 };

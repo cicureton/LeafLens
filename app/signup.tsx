@@ -21,58 +21,100 @@ const Signup = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [userType, setUserType] = useState("gardener"); // Default to gardener
   const [loading, setLoading] = useState(false);
 
-  // In your SignupScreen component
-  const handleSignup = async (formData: {
-    name: string;
-    email: string;
-    password: string; // This comes from the form
-    user_type?: string;
-  }) => {
+  const handleSignup = async () => {
+    if (loading) return;
+
+    // Basic validation
+    if (!name.trim() || !email.trim() || !password.trim()) {
+      Alert.alert("Error", "Please fill in all fields");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      Alert.alert("Error", "Passwords do not match");
+      return;
+    }
+
+    setLoading(true);
+
     try {
-      console.log("🚀 Starting signup process...");
+      console.log("🚀 Starting registration...");
+      console.log("🟡 Selected user type:", userType);
 
-      // Transform to match backend expectations
-      const registrationData = {
-        name: formData.name,
-        email: formData.email,
-        password_hash: formData.password, // Convert 'password' to 'password_hash'
-        user_type: formData.user_type || "user",
-      };
-
-      console.log("🟡 Transformed data for backend:", {
-        ...registrationData,
-        password_hash: "[HIDDEN]",
+      const result = await authAPI.register({
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        password: password,
+        user_type: userType,
       });
 
-      const result = await authAPI.register(registrationData);
+      console.log("🟢 Registration result:", result);
 
-      console.log("🟢 Signup successful!", result);
+      // Store user data - transform to include all necessary fields
+      let userDataToStore;
 
-      // Store user data and token
-      if (result.user && result.access_token) {
-        await AsyncStorage.setItem("user_token", result.access_token);
-        await AsyncStorage.setItem("user_data", JSON.stringify(result.user));
-
-        // Navigate to app
-        router.replace("/tabs/home");
+      if (result.isMock) {
+        // Mock user data structure
+        userDataToStore = {
+          user_id: result.data.user_id,
+          name: result.data.name,
+          email: result.data.email,
+          user_type: result.data.user_type,
+          created_at: result.data.created_at || new Date().toISOString(),
+          // Add fields that profile expects
+          uid: result.data.user_id,
+          displayName: result.data.name,
+          username: result.data.name.toLowerCase().replace(/\s+/g, ""),
+        };
+      } else {
+        // Real backend user data structure
+        userDataToStore = {
+          user_id: result.data.user_id || result.data.id,
+          name: result.data.name,
+          email: result.data.email,
+          user_type: result.data.user_type,
+          created_at: result.data.created_at || new Date().toISOString(),
+          // Add fields that profile expects
+          uid: result.data.user_id || result.data.id,
+          displayName: result.data.name,
+          username: result.data.name.toLowerCase().replace(/\s+/g, ""),
+          // Include any other fields from backend response
+          ...result.data,
+        };
       }
+
+      console.log("💾 Storing user data:", userDataToStore);
+      await AsyncStorage.setItem("userData", JSON.stringify(userDataToStore));
+
+      // Verify storage
+      const storedData = await AsyncStorage.getItem("userData");
+      console.log("✅ Verified stored data:", JSON.parse(storedData));
+
+      // Show success message
+      const message = result.isMock
+        ? "Account created successfully! (Using offline mode)"
+        : "Account created successfully!";
+
+      Alert.alert("Success", message, [
+        {
+          text: "OK",
+          onPress: () => {
+            console.log("🎯 Navigating to home tab...");
+            router.replace("/tabs/home");
+          },
+        },
+      ]);
     } catch (error: any) {
       console.log("❌ Signup error:", error);
-
-      // Show user-friendly error message
-      let errorMessage = "Signup failed. Please try again.";
-
-      if (error.status === 422) {
-        errorMessage = "Invalid data. Please check your information.";
-      } else if (error.status === 409) {
-        errorMessage = "Email already exists. Please use a different email.";
-      } else if (error.message.includes("Network")) {
-        errorMessage = "Network error. Please check your connection.";
-      }
-
-      Alert.alert("Signup Failed", errorMessage);
+      Alert.alert(
+        "Registration Failed",
+        error.message || "Failed to create account. Please try again."
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -134,6 +176,49 @@ const Signup = () => {
               editable={!loading}
             />
 
+            {/* User Type Selection */}
+            <View style={styles.userTypeContainer}>
+              <Text style={styles.userTypeLabel}>I am a:</Text>
+              <View style={styles.userTypeButtons}>
+                <TouchableOpacity
+                  style={[
+                    styles.userTypeButton,
+                    userType === "gardener" && styles.userTypeButtonSelected,
+                  ]}
+                  onPress={() => setUserType("gardener")}
+                  disabled={loading}
+                >
+                  <Text
+                    style={[
+                      styles.userTypeButtonText,
+                      userType === "gardener" &&
+                        styles.userTypeButtonTextSelected,
+                    ]}
+                  >
+                    🌱 Gardener
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.userTypeButton,
+                    userType === "farmer" && styles.userTypeButtonSelected,
+                  ]}
+                  onPress={() => setUserType("farmer")}
+                  disabled={loading}
+                >
+                  <Text
+                    style={[
+                      styles.userTypeButtonText,
+                      userType === "farmer" &&
+                        styles.userTypeButtonTextSelected,
+                    ]}
+                  >
+                    🚜 Farmer
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
             <TouchableOpacity
               style={[styles.button, loading && styles.buttonDisabled]}
               onPress={handleSignup}
@@ -191,6 +276,45 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     marginBottom: 15,
+  },
+  userTypeContainer: {
+    width: "90%",
+    marginBottom: 20,
+  },
+  userTypeLabel: {
+    color: "white",
+    fontSize: 16,
+    marginBottom: 10,
+    fontWeight: "bold",
+    textAlign: "center",
+  },
+  userTypeButtons: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  userTypeButton: {
+    flex: 1,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    padding: 12,
+    borderRadius: 8,
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "transparent",
+  },
+  userTypeButtonSelected: {
+    backgroundColor: "#004d00",
+    borderColor: "white",
+  },
+  userTypeButtonText: {
+    color: "white",
+    fontWeight: "bold",
+    fontSize: 12,
+    textAlign: "center",
+  },
+  userTypeButtonTextSelected: {
+    color: "white",
+    fontWeight: "bold",
   },
   button: {
     width: "50%",

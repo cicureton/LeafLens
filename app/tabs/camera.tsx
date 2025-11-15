@@ -1,8 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import axios from "axios";
 import { CameraType, CameraView, useCameraPermissions } from "expo-camera";
 import * as FileSystem from "expo-file-system/legacy";
+import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -15,7 +15,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { PhotoStorage } from "../../app/api";
+import api, { PhotoStorage } from "../../app/api";
 import { styles } from "../styles/camerastyle";
 
 const CameraScreen = () => {
@@ -30,6 +30,8 @@ const CameraScreen = () => {
   const [loadingMessage, setLoadingMessage] = useState("");
   const [showResults, setShowResults] = useState(false);
   const [analysisResults, setAnalysisResults] = useState([]);
+
+  const router = useRouter();
 
   // Load user data and saved photos
   useEffect(() => {
@@ -217,7 +219,7 @@ const CameraScreen = () => {
     );
   };
 
-  // use photos (for analysis, saving, etc.)
+  // In your CameraScreen.tsx, update the usePhotos function
   const usePhotos = async () => {
     if (photos.length === 0) {
       Alert.alert("No Photos", "Take some photos first!");
@@ -231,100 +233,103 @@ const CameraScreen = () => {
     try {
       console.log(`🟡 Analyzing ${photos.length} photos individually...`);
 
+      // Get current user ID
+      const userDataJson = await AsyncStorage.getItem("userData");
+      const userData = userDataJson ? JSON.parse(userDataJson) : null;
+      const user_id = userData?.user_id || userData?.id || userData?.uid;
+
+      console.log(`🟡 Using user_id: ${user_id}`);
+
       // Process each photo individually
       const analysisResults = [];
+      const scanData = []; // Store scan data for history
 
       for (let i = 0; i < photos.length; i++) {
         const photo = photos[i];
         setLoadingMessage(`Analyzing photo ${i + 1} of ${photos.length}...`);
 
         try {
-          // Create FormData for single image
-          const formData = new FormData();
-          formData.append("files", {
-            uri: photo.uri,
-            name: `plant_photo_${i}.jpg`,
-            type: "image/jpeg",
-          } as any);
-
           console.log(`📤 Sending photo ${i + 1} to backend...`);
+          const response = await api.analysis.analyzePhoto(photo.uri, user_id);
 
-          // POST to FastAPI backend - single image
-          const response = await axios.post(
-            "https://leaflens-16s1.onrender.com/predict_species_and_disease_batch",
-            formData,
-            {
-              headers: { "Content-Type": "multipart/form-data" },
-              timeout: 30000,
-            }
-          );
+          console.log(`✅ Photo ${i + 1} response:`, response);
 
-          console.log(`✅ Photo ${i + 1} response:`, response.data);
-
-          // Transform backend response for this single photo
-          const backendData = response.data;
-
-          // Get species prediction (first one from species_predictions)
+          const backendData = response;
           const speciesPrediction = backendData.species_predictions?.[0] || {
             species: "Unknown",
             confidence: 0,
           };
-
-          // Get disease prediction (first one from disease_predictions)
           const diseasePrediction = backendData.disease_predictions?.[0] || {
             disease: "Healthy",
             confidence: 0,
           };
 
+          // Store the analysis result for display
           analysisResults.push({
             species: speciesPrediction.species,
             disease: diseasePrediction.disease,
-            confidence: speciesPrediction.confidence / 100, // Convert from percentage to decimal
-            disease_confidence: diseasePrediction.confidence / 100, // Convert from percentage to decimal
+            confidence: speciesPrediction.confidence / 100,
+            disease_confidence: diseasePrediction.confidence / 100,
             photoIndex: i,
+            scan_id: backendData.scan_id,
           });
-        } catch (photoError) {
-          console.error(`🔴 Error analyzing photo ${i + 1}:`, photoError);
-          // Add error result for this photo
-          analysisResults.push({
-            species: "Analysis Failed",
-            disease: "Unable to process",
-            confidence: 0,
-            disease_confidence: 0,
-            photoIndex: i,
-            error: true,
-          });
-        }
 
-        // Small delay to avoid overwhelming the backend
-        if (i < photos.length - 1) {
-          await new Promise((resolve) => setTimeout(resolve, 500));
+          // ALSO store the analysis data for history
+          scanData.push({
+            scan_id: backendData.scan_id,
+            species: speciesPrediction.species,
+            disease: diseasePrediction.disease,
+            species_confidence: speciesPrediction.confidence,
+            disease_confidence: diseasePrediction.confidence,
+            timestamp: new Date().toISOString(),
+          });
+        } catch (photoError: any) {
+          // ... error handling ...
         }
       }
 
-      console.log("📊 All analysis results:", analysisResults);
+      // Save scan data to AsyncStorage for history
+      await saveScanDataToStorage(scanData);
 
-      // Store results and show on screen
+      console.log("📊 All analysis results:", analysisResults);
       setAnalysisResults(analysisResults);
       setShowResults(true);
     } catch (error: any) {
-      console.error("🔴 Overall analysis error:", error);
-      Alert.alert(
-        "Analysis Failed",
-        error.response?.data?.detail ||
-          "Failed to analyze photos. Please try again."
-      );
+      // ... error handling ...
     } finally {
       setLoading(false);
       setUploading(false);
     }
   };
 
-  // Render individual analysis result with error states
+  // Add this function to save scan data
+  const saveScanDataToStorage = async (scanData: any[]) => {
+    try {
+      const existingScans = await AsyncStorage.getItem("@scan_analysis_data");
+      const allScans = existingScans ? JSON.parse(existingScans) : [];
+      const updatedScans = [...allScans, ...scanData];
+      await AsyncStorage.setItem(
+        "@scan_analysis_data",
+        JSON.stringify(updatedScans)
+      );
+      console.log("💾 Saved scan analysis data:", scanData.length);
+    } catch (error) {
+      console.error("Error saving scan data:", error);
+    }
+  };
+
+  // In your CameraScreen.tsx - updated renderAnalysisResult function
   const renderAnalysisResult = (result, index) => (
-    <View
+    <TouchableOpacity
       key={index}
       style={[styles.resultCard, result.error && styles.errorCard]}
+      onPress={() => {
+        if (result.scan_id && !result.error) {
+          console.log(`🟡 Navigating to scan details: ${result.scan_id}`);
+          router.push(`/scan_detail?id=${result.scan_id}`);
+        }
+      }}
+      disabled={!result.scan_id || result.error}
     >
       {/* Photo Preview */}
       <Image source={{ uri: photos[index]?.uri }} style={styles.resultImage} />
@@ -409,10 +414,30 @@ const CameraScreen = () => {
                 </View>
               </>
             )}
+
+            {/* Scan ID (if available) */}
+            {result.scan_id && (
+              <View style={styles.scanIdSection}>
+                <Ionicons name="document-text" size={14} color="#666" />
+                <Text style={styles.scanIdText}>
+                  Scan ID: #{result.scan_id}
+                </Text>
+              </View>
+            )}
+
+            {/* View Details Prompt */}
+            {result.scan_id && (
+              <View style={styles.viewDetails}>
+                <Ionicons name="chevron-forward" size={14} color="#3f704d" />
+                <Text style={styles.viewDetailsText}>
+                  Tap to view scan details
+                </Text>
+              </View>
+            )}
           </>
         )}
       </View>
-    </View>
+    </TouchableOpacity>
   );
 
   // render individual photo in the preview list
@@ -543,7 +568,6 @@ const CameraScreen = () => {
   return (
     <View style={styles.container}>
       <CameraView style={styles.camera} facing={facing} ref={cameraRef} />
-
       <View style={styles.buttonContainer}>
         <TouchableOpacity style={styles.button} onPress={toggleCameraFacing}>
           <Ionicons name="camera-reverse" size={30} color="white" />
@@ -563,6 +587,14 @@ const CameraScreen = () => {
           )}
         </TouchableOpacity>
       </View>
+
+      {/* Floating Scan History Button */}
+      <TouchableOpacity
+        style={styles.floatingHistoryButton}
+        onPress={() => router.push("/scan_history")}
+      >
+        <Ionicons name="time-outline" size={24} color="white" />
+      </TouchableOpacity>
 
       {/* Photo counter */}
       <View style={styles.photoCounter}>

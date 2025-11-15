@@ -256,10 +256,10 @@ export const styles = StyleSheet.create({
     borderRadius: 3,
   },
   diseaseConfidenceBar: {
-  height: '100%',
-  backgroundColor: '#e67e22',
-  borderRadius: 3,
-},
+    height: "100%",
+    backgroundColor: "#e67e22",
+    borderRadius: 3,
+  },
 
   // Section Header
   sectionHeader: {
@@ -304,26 +304,70 @@ export const styles = StyleSheet.create({
   },
 
   // Add to your styles
-errorCard: {
-  borderLeftColor: '#e74c3c',
-  backgroundColor: '#fdf2f2',
-},
-errorSection: {
-  alignItems: 'center',
-  padding: 10,
-},
-errorText: {
-  color: '#e74c3c',
-  fontWeight: '600',
-  marginTop: 5,
-  textAlign: 'center',
-},
-errorDetail: {
-  color: '#e74c3c',
-  fontSize: 12,
-  marginTop: 2,
-  textAlign: 'center',
-},
+  errorCard: {
+    borderLeftColor: "#e74c3c",
+    backgroundColor: "#fdf2f2",
+  },
+  errorSection: {
+    alignItems: "center",
+    padding: 10,
+  },
+  errorText: {
+    color: "#e74c3c",
+    fontWeight: "600",
+    marginTop: 5,
+    textAlign: "center",
+  },
+  errorDetail: {
+    color: "#e74c3c",
+    fontSize: 12,
+    marginTop: 2,
+    textAlign: "center",
+  },
+
+  floatingHistoryButton: {
+    position: "absolute",
+    top: 60,
+    right: 20,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    padding: 12,
+    borderRadius: 25,
+    zIndex: 10,
+  },
+
+  // Add these styles to your existing styles
+  scanIdSection: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 8,
+    padding: 6,
+    backgroundColor: "#f8f9fa",
+    borderRadius: 6,
+    alignSelf: "flex-start",
+  },
+  scanIdText: {
+    fontSize: 12,
+    color: "#666",
+    marginLeft: 4,
+    fontWeight: "500",
+  },
+  viewDetails: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 8,
+    padding: 8,
+    backgroundColor: "#f0fff4",
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "#3f704d",
+    alignSelf: "flex-start",
+  },
+  viewDetailsText: {
+    color: "#3f704d",
+    fontSize: 12,
+    fontWeight: "600",
+    marginLeft: 4,
+  },
 });
 
 export default styles;
