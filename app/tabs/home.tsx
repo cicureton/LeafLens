@@ -618,7 +618,7 @@ const Home = () => {
         {userData && (
           <>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Your Recent Posts</Text>
+              <Text style={styles.sectionTitle}>Make A Post</Text>
               <TouchableOpacity onPress={() => router.push("/tabs/forum")}>
                 <Text style={styles.seeAllText}>See All</Text>
               </TouchableOpacity>
