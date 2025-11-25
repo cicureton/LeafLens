@@ -1,5 +1,8 @@
 # 🌿 LeafLens - Plant Disease Detection & Care Assistant
+
 Senior Capstone Project
+
+---
 
 Branches:
 1. admin-web
@@ -92,7 +95,7 @@ LeafLens is developed as a Senior Capstone Project by:
 
 | Role | Name | Contribution |
 |------|------|--------------|
-| Frontend | Robertson Siu | React Native app, UI/UX design |
+| Frontend | Robertson Siu | React Native app, Frontend development, UI/UX design, Camera integration with AI |
 | AI Model | Alexander Crubaugh | AI model development, dataset preparation, Species & disease detection models, integration with backend |
 | Backend | Christian Cureton | Backend development, Database design & management, API endpoint creation, Deployment setup |
 
