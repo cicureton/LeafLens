@@ -22,6 +22,8 @@ Senior Capstone Project
 - test_species.py
 ### An image of the loss vs epoch for training on the **disease model**.
 - training_plot.png
+### Mapping.py filters out diseases that do not correspond with the predicted species output
+- mapping.py
 
 _The majority of the rest of the work involved backend integration, and creating/managing the endpoint that functions as the AI model._
 
