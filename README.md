@@ -49,11 +49,17 @@ LeafLens uses advanced machine learning models to instantly analyze plant images
 
 ### Mobile App Setup
 ```bash
-# Clone the repository
-git clone https://github.com/your-username/LeafLens.git
-cd LeafLens
+# Expo Go App
+download the Expo Go in the app store or google playstore if haven't already
+
+# Download the files
+then in the github:
+here inside the main, download the zip files
+extract the files and keep clicking the folder until you see "frontend" folder
+open the "frontend" folder in VS Code
 
 # Install dependencies
+from there, inside the terminal (make sure you are in the "frontend" directory), type:
 npm install
 
 # Install Expo CLI
