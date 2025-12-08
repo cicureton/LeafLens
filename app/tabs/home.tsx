@@ -17,7 +17,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { forumAPI } from "../../app/api";
+import { forumAPI } from "../api";
 import { styles } from "../styles/homestyle";
 
 const { width } = Dimensions.get("window");
