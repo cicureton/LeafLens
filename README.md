@@ -50,7 +50,7 @@ LeafLens uses advanced machine learning models to instantly analyze plant images
 ### Mobile App Setup
 ```bash
 # Expo Go App
-download the Expo Go in the app store or google playstore if haven't already
+download the Expo Go in the app store or google playstore if have not already
 
 # Download the files
 then in the github:
