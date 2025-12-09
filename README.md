@@ -3,8 +3,8 @@ Frontend (to run frontend follow these steps)
 - Download the Expo Go in the app store or google playstore if have not already (https://expo.dev/go)
 - Then download the zip files from main branch, and open "frontend" directory within VSCode or a CLI
 - Install all dependecies (make sure you are in the "frontend" directory), by typing:
-**- npm install
-- npm install -g expo-cli**
+- **npm install**
+- **npm install -g expo-cli**
 - Start the development server with:
 **npx expo start**
 (if doesn't work, try "npx expo start --tunnel")
