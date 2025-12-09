@@ -8,6 +8,7 @@ Frontend (to run frontend follow these steps)
 - Start the development server with:
 **npx expo start**
 (if doesn't work, try "npx expo start --tunnel")
+- When the app is running be sure to hit (allow permissions button on the camera tab) to allow access to camera.
 
 Backend
 - This directory includes all the code that is used on our backend server on Render at https://leaflens-16s1.onrender.com
