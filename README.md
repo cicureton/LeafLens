@@ -1,3 +1,18 @@
+# Table Of Contents (what and where our code is?)
+Frontend (to run frontend follow these steps)
+- Download the Expo Go in the app store or google playstore if have not already (https://expo.dev/go)
+- Then download the zip files from main branch, and open "frontend" directory within VSCode or a CLI
+- Install all dependecies (make sure you are in the "frontend" directory), by typing:
+**- npm install
+- npm install -g expo-cli**
+- Start the development server with:
+**npx expo start**
+(if doesn't work, try "npx expo start --tunnel")
+
+Backend
+- This directory includes all the code that is used on our backend server on Render at https://leaflens-16s1.onrender.com
+- The AI model is loaded and runs on this server as well, using an API for requests.
+- 
 # 🌿 LeafLens - Plant Disease Detection & Care Assistant
 
 Senior Capstone Project
