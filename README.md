@@ -12,7 +12,8 @@ Frontend (to run frontend follow these steps)
 Backend
 - This directory includes all the code that is used on our backend server on Render at https://leaflens-16s1.onrender.com
 - The AI model is loaded and runs on this server as well, using an API for requests.
-- 
+
+
 # 🌿 LeafLens - Plant Disease Detection & Care Assistant
 
 Senior Capstone Project
